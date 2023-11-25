@@ -1,0 +1,11 @@
+valorant;Valorant
+brawlhalla;Brawlhalla
+genshin;Genshin Impact
+lol;League of Legends
+rocketleague;Rocket League
+minecraft;Minecraft
+civilisationvi;Civilisation VI
+trackmania;Trackmania
+apexlegends;Apex Legends
+fortnite;Fortnite
+brawlstars;Brawl Stars
