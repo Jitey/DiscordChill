@@ -17,11 +17,11 @@ parent_folder = Path(__file__).resolve().parent
 
 
 class RoleView(discord.ui.View):
-    def __init__(self, roles) -> None:
+    def __init__(self, serveur: discord.Guild, roles: list) -> None:
         super().__init__()
         
         for role in roles:
-            self.add_item(RoleButton(role))
+            self.add_item(RoleButton(serveur, role))
 
 
 
@@ -51,29 +51,32 @@ class RoleView(discord.ui.View):
 
 
 class RoleButton(discord.ui.Button['RoleView']):
-    def __init__(self, role: discord.Role)->None:
+    def __init__(self, serveur: discord.Guild, role: discord.Role)->None:
+        game_name = " ".join(role.name.split(' ')[1:])       # Supprime 'Tryhard' du nom
+        emoji_name = "".join(game_name.split(' ')).lower()
         super().__init__(
-            label=role.name,
+            label=game_name,
             custom_id=f"button_{role.name}",
-            style=discord.ButtonStyle.blurple
+            style=discord.ButtonStyle.blurple,
+            emoji= discord.utils.get(serveur.emojis, name=emoji_name)
         )
         
         self.role = role
 
     
     async def callback(self, interaction: discord.Interaction)->None:
-        user = interaction.user
+        member = interaction.user
 
-        if isinstance(user, discord.User):
+        if isinstance(member, discord.User):
             return
 
         try:
-            if self.role in user.roles:
-                await user.remove_roles(self.role)
+            if self.role in member.roles:
+                await member.remove_roles(self.role)
 
                 return await interaction.response.send_message(f"{self.role.name} retiré", ephemeral=True)
             
-            await user.add_roles(self.role)
+            await member.add_roles(self.role)
 
             return await interaction.response.send_message(f"{self.role.name} ajouté", ephemeral=True)
 
@@ -90,6 +93,8 @@ class AutoRole(commands.Cog):
     @commands.hybrid_command(name="role", description="Créer un menu pour choisir ses rôles")
     async def role(self, ctx: commands.Context)->discord.Message:
         user = ctx.author
+        serveur = ctx.guild
+        
         if not ctx.guild:
             raise commands.NoPrivateMessage()
 
@@ -97,10 +102,10 @@ class AutoRole(commands.Cog):
 
 
         # view = RoleView().add_item(RoleSelectMenu())
-        view = RoleView(game_roles)
+        view = RoleView(serveur, game_roles)
 
         embed = discord.Embed(
-            title='Role Select',
+            title='Game Role Select',
             description="Cliquez sur les boutons pour selectionner un rôle",
             color=discord.Color.random()
         )
