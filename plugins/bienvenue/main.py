@@ -10,7 +10,6 @@ import requests
 
 parent_folder = Path(__file__).resolve().parent
 
-from icecream import ic
 
 
 
@@ -18,8 +17,10 @@ class Bienvenue(commands.Cog):
     def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
         self.channels = self.load_channels()
-        ic(self.channels)
         
+    async def cog_before_invoke(self, ctx: commands.Context) -> None:
+        await self.bot.wait_until_ready()
+
 
     @commands.Cog.listener(name='on_member_join')
     async def message_bienvenue(self, member: discord.Member):
