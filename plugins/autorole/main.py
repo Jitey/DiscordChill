@@ -1,7 +1,4 @@
-from typing import Optional, Union
 import discord
-from discord.emoji import Emoji
-from discord.enums import ButtonStyle
 from discord.ext import commands
 
 from pathlib import Path
@@ -113,8 +110,21 @@ class AutoRole(commands.Cog):
         embed.set_author(icon_url=user.display_avatar.url, name=user.display_name)
         embed.set_thumbnail(url=ctx.guild.icon.url)
 
-        return await ctx.reply(embed=embed,view=view)
+        return await ctx.send(embed=embed,view=view)
 
+
+    @commands.Cog.listener(name='on_message')
+    async def role_moderation(self, message: discord.Message)->None:
+        member = message.author
+        channel = self.bot.get_channel(720974238499995658)
+
+        if message.channel.id == channel.id and member != self.bot.user:
+            if message.content != '/role':
+                msg = await message.reply(f"Tu ne peux pas écrire ça ici. Utilise plutot `/role`")
+                await message.delete()
+                return await msg.delete(delay=5)
+
+    
 
     def game_roles(self, serveur: discord.Guild)->discord.Role:
         """Renvoie un itérateur des rôles avec 'Tryhard' dedans

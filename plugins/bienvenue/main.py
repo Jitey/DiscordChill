@@ -4,7 +4,7 @@ from discord.ext import commands
 from pathlib import Path
 import json
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageSequence, ImageChops
 from io import BytesIO
 import requests
 
@@ -16,29 +16,39 @@ parent_folder = Path(__file__).resolve().parent
 class Bienvenue(commands.Cog):
     def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
+        self.channels = self.load_channels()
         
 
-    @commands.Cog.listener(name='event')
-    async def on_member_join(self, member):
-        logs = self.load_logs()
+    @commands.Cog.listener(name='on_member_join')
+    async def message_bienvenue(self, member: discord.Member):
+        logs = self.load_json('logs')
         serveur = member.guild
-        user = member
         
         #|----------Message de bienvenue----------|
-        msg = f"Yo ! Bienvenue {member.mention}, je t'invite à choisir tes rôles dans {self.channels['role'].jump_url}"
-        image = self.image_bienvenue(user, serveur)
+        embed = discord.Embed(
+            title=f"Bienvenue {member.display_name} !",
+            description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
+            color=discord.Color.blurple()
+        )
+        embed.set_thumbnail(url=member.guild.icon.url)
+        # embed.set_image(url="https://media.tenor.com/meKX31nUiPUAAAAd/discord-welcome-gif.gif")
+        embed.set_footer(icon_url=member.avatar.url ,text=f"{member.name} | Membre {self.member_count(serveur)}")
+
+        image = self.image_bienvenue(member, serveur)
+        embed.set_image(url="attachment://welcome_card.png")
         
-        await self.channels['information'].send(msg, file=image)
+        await self.channels['information'].send( embed=embed, file=image)
             
         #|----------Member count----------|
         if member.bot:
-            self.logs['bot_count'] += 1
-            self.update_logs(logs)
+            logs['bot_count'] += 1
+            self.update_logs(logs, 'logs')
         await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
-    @commands.Cog.listener(name='event')
-    async def on_member_remove(self, member):
-        logs = self.load_logs()
+
+    @commands.Cog.listener(name='on_member_remove')
+    async def message_au_revoir(self, member):
+        logs = self.load_json('logs')
         serveur = member.guild
         
         #|----------Message de départ----------|
@@ -47,9 +57,10 @@ class Bienvenue(commands.Cog):
         #|----------Member count----------|
         if member.bot:
             logs['bot_count'] -= 1
-            self.update_logs(logs)
+            self.update_logs(logs, 'logs')
         await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
+        
         
     def member_count(self, serveur: discord.Guild)->int:
         """Renvoie le nombre de membre d'un serveur sans compter les bots
@@ -127,7 +138,7 @@ class Bienvenue(commands.Cog):
         
         return cropped_image
         
-    def ecrire_on_image(self, image: Image, text: str, taille: int, pos: tuple, couleur: int=0xFFFFFF)->Image:
+    def ecrire_on_image(self, image: Image, text: str, size: int, pos: tuple, text_color: int=0xFFFFFF, border_size: int=0, border_color: int=0x000000)->Image:
         """Écris du texte centrée en x sur une image à une position y données
 
         Args:
@@ -141,13 +152,13 @@ class Bienvenue(commands.Cog):
             Image: Image avec le texte écrit dessus
         """
         draw = ImageDraw.Draw(image)
-        r , g , b = self.color_hexa_to_rgb(couleur)
+        r , g , b = self.color_hexa_to_rgb(text_color)
 
-        font = ImageFont.truetype(font='Verdana', size=taille)
+        font = ImageFont.truetype(f"{parent_folder}/font/chillow.ttf", size)
         _ , _ , w , h = draw.textbbox((0, 0), text, font)
 
-        x , y = image.size    
-        draw.text((x//2 - w//2, pos), text, font=font, fill=(r, g, b))
+        x , y = image.size
+        draw.multiline_text((x//2 - w//2, pos), text, font=font, fill=(r, g, b), stroke_width=border_size, stroke_fill=self.color_hexa_to_rgb(border_color))
 
         return image
 
@@ -166,7 +177,7 @@ class Bienvenue(commands.Cog):
         image_byte.seek(0)
         return discord.File(image_byte, filename=f'{name}.png') 
 
-    def image_bienvenue(self, user: discord.user, serveur: discord.Guild)->Image:
+    def image_bienvenue(self, user: discord.Member, serveur: discord.Guild)->Image:
         """Génère une image de bienvenue aux nouveaux arrivant
 
         Args:
@@ -180,32 +191,28 @@ class Bienvenue(commands.Cog):
         avatar = self.rogner_image(self.get_image_from_url(user.avatar.url).resize((240,240)))
         avatar_y = 60
 
-        # Génère le contour de couleur de l'image
-        image = Image.new('RGB', (1100,500), self.color_hexa_to_rgb(0x17181E))
-
-        # Si le mebre a discord nitro sa bannière est prise pour le fond
-        if banner :=user.banner:
-            background = self.get_image_from_url(banner.url).resize((100,460))
-        # Sinon le fond est noir
+        # Image de fond
+        if banner := user.banner:
+            # Bannière nitro si existante
+            background = self.get_image_from_url(banner.url).resize((1000,460))
         else:
-            background = Image.new('RGB', (1000,460), self.color_hexa_to_rgb(0x060608))
-        image.paste(background, self.centrer_image(image,background))
-
+            # Sinon le fond default
+            background = Image.open(f"{parent_folder}/image/background.gif").resize((1100,500)).convert('RGBA')
+            
         # Dessine une bordure blanche autour de l'avatar
-        border = ImageDraw.Draw(image)                                                      
-        xp , yp = self.centrer_image(image,avatar)
+        border = ImageDraw.Draw(background)                                                      
+        xp , yp = self.centrer_image(background,avatar)
         x , y = avatar.size
         offset = 5
         border.ellipse((xp-offset, avatar_y-offset, xp+x+offset, avatar_y+y+offset), fill=(255,255,255))
         
         # Copie de l'avatar sur l'image en dernière pour qu'il soit au premier plan
-        image.paste(avatar, (xp, avatar_y), avatar)
+        background.paste(avatar, (xp, avatar_y), avatar)
         
         # Texte de bienvenue
-        image = self.ecrire_on_image(image, f"{user.name} viens chill avec nous", taille=36, pos=350)
-        image = self.ecrire_on_image(image, f"Membre #{self.member_count(serveur)}", taille=30, pos=406, couleur=0xB4B4B4)
+        card = self.ecrire_on_image(background, f"{user.name} viens chill avec nous", size=60, pos=350, border_size=4)
         
-        return self.discord_image(image, "card")
+        return self.discord_image(card, "welcome_card")
 
     def member_count(self, serveur: discord.Guild)->int:
         """Renvoie le nombre de membre d'un serveur sans compter les bots
@@ -216,9 +223,15 @@ class Bienvenue(commands.Cog):
         Returns:
             int: Nombre de membre
         """
-        logs = self.load_logs()
+        logs = self.load_json('logs')
         return serveur.member_count - logs['bot_count']
 
+    def load_channels(self):
+        channels = {}
+        for channel_name , channel_id in self.load_json('channels').items():
+            channels[channel_name] = self.bot.get_channel(channel_id)
+        return channels
+    
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
 
@@ -228,7 +241,7 @@ class Bienvenue(commands.Cog):
         Returns:
             dict: Données enregistrées
         """
-        with open(f"{parent_folder}/{file}.json", 'r') as f:
+        with open(f"{parent_folder}/datafile/{file}.json", 'r') as f:
             return json.load(f)
 
     def update_logs(self, data: dict, path: str)->None:
@@ -238,7 +251,7 @@ class Bienvenue(commands.Cog):
             data (dict): Données à enregistrer
             path (str): Chemin du fichier à enregistrer
         """
-        with open(f"{parent_folder}/{path}.json", 'w') as f:
+        with open(f"{parent_folder}/datafile/{path}.json", 'w') as f:
             json.dump(data,f,indent=2) 
 
 

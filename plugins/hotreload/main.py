@@ -52,11 +52,11 @@ class HotReload(commands.Cog):
             try:
                 await self.bot.reload_extension(extension)
             except commands.ExtensionError:
-                print(f"Couldn't reload extension: {extension}")
+                print(f"Couldn't reload extension: {extension.split('.')[1]}")
             except commands.ExtensionNotLoaded:
                 continue
             else:
-                print(f"Reloaded extension: {extension}")
+                print(f"Reloaded extension: {extension.split('.')[1]}")
             finally:
                 self.last_modified_time[extension] = time
 
@@ -74,11 +74,11 @@ class HotReload(commands.Cog):
             try:
                 await self.bot.load_extension(extension)
             except commands.ExtensionError:
-                print(f"Couldn't load extension: {extension}")
+                print(f"Couldn't load extension: {extension.split('.')[1]}")
             except commands.ExtensionNotLoaded:
                 continue
             else:
-                print(f"Loaded extension: {extension}")
+                print(f"Loaded extension: {extension.split('.')[1]}")
             finally:
                 self.last_modified_time[extension] = time
 
