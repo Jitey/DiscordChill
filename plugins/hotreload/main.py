@@ -50,10 +50,17 @@ class HotReload(commands.Cog):
         repo = git.Repo(repository_path)
 
         try:
+            repo.remotes.origin.fetch()
+
+            local_commit = repo.head.commit
+            remote_commit = repo.remotes.origin.refs.master.commit
             # Effectuer un pull depuis la branche actuelle
-            if repo.is_dirty():
+            if local_commit != remote_commit:
+                logging.info("Un nouveau push a été effectué sur le dépôt distant.")
                 repo.git.pull() 
                 logging.info("Pull réussi")
+            else:
+                logging.info("Aucun nouveau push sur le dépôt distant.")
         except git.GitCommandError as e:
             logging.info(f"Erreur lors du pull : {e}")
 
