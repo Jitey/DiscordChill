@@ -44,7 +44,7 @@ class HotReload(commands.Cog):
     
     
 
-    @tasks.loop(seconds=5)
+    @tasks.loop(minutes=1)
     async def pull_from_github(self, repository_path: str=GITHUB_REPOSITORY)->None:
         # Ouvrir le référentiel existant
         repo = git.Repo(repository_path)
