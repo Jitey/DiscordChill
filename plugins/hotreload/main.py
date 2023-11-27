@@ -6,6 +6,8 @@ import discord
 from discord.ext import commands, tasks
 
 import git
+import json
+from datetime import datetime as dt
 
 from icecream import ic
 import logging
@@ -44,15 +46,25 @@ class HotReload(commands.Cog):
     
     
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(seconds=5)
     async def pull_from_github(self, repository_path: str=GITHUB_REPOSITORY)->None:
-        # Ouvrir le référentiel existant
-        repo = git.Repo(repository_path)
+        """Pull automatiquement sur les nouveaux commit
 
+        Args:
+            repository_path (str, optional): Chemin local du répertoire
+        """
+        repo = git.Repo(repository_path)
+        
+        with open(f"{parent_folder}/save.json", 'r') as f:
+            last_commit_saved_str = json.load(f)['last_commit']
+        last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
+        
         try:
-            # Effectuer un pull depuis la branche actuelle
-            if repo.is_dirty():
+            last_commit = repo.head.commit
+            if last_commit.committed_datetime > last_commit_saved:
                 repo.git.pull() 
+                with open(f"{parent_folder}/save.json", 'w') as f:
+                    json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
                 logging.info("Pull réussi")
         except git.GitCommandError as e:
             logging.info(f"Erreur lors du pull : {e}")
@@ -109,16 +121,17 @@ class HotReload(commands.Cog):
                 self.last_modified_time[extension] = time
 
 
-    @load_new_cogs_loop.before_loop
-    @hot_reload_loop.before_loop
     @pull_from_github.before_loop
     async def demarage(self):
         await self.bot.wait_until_ready()
+        with open('save.json', 'r') as f:
+            self.last_commit =  json.load(f)['last_commit']
 
 
     @load_new_cogs_loop.before_loop
     @hot_reload_loop.before_loop
     async def cache_last_modified_time(self):
+        await self.bot.wait_until_ready()
         self.last_modified_time = {}
         # Mapping = {extension: timestamp}
         for extension in self.bot.extensions.keys():
