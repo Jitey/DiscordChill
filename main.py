@@ -6,6 +6,7 @@ import glob
 # |----------Module du projet-----------|
 import discord
 from discord.ext import commands
+import aiosqlite
 
 
 parent_folder = Path(__file__).resolve().parent
@@ -25,6 +26,9 @@ class ChillBot(commands.Bot):
     
     
     async def setup_hook(self) -> None:
+        self.connection = await aiosqlite.connect('main.sqlite')
+        await self.create_table(self.connection)
+        
         await load_all_extensions(self)
         synced = await self.tree.sync()
         print(f"{len(synced)} commandes synchroisées")
@@ -35,6 +39,12 @@ class ChillBot(commands.Bot):
         await self.change_presence(status=discord.Status.online, activity=activity)
         
         print(f'Connecté en tant que {self.user.name}')
+    
+    
+    async def create_table(self, connection: aiosqlite.Connection)->None:
+        req = "CREATE TABLE IF NOT EXISTS Rank (id INTEGER PRIMARY KEY, name str, msg int, xp int, lvl int)"
+        await connection.execute(req)
+        await connection.commit()   
 
 
 

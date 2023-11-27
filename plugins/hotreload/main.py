@@ -5,12 +5,18 @@ import glob
 import discord
 from discord.ext import commands, tasks
 
+import git
+
 from icecream import ic
+import logging
+logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
 
 
 
 IGNORE_EXTENSIONS = []
 parent_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
+GITHUB_REPOSITORY = "https://github.com/Jitey/DiscordChill"
+
 
 
 def path_from_extension(extension: str) -> pathlib.Path:
@@ -23,7 +29,7 @@ class HotReload(commands.Cog):
     Cog for reloading extensions as soon as the file is edited
     """
 
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.hot_reload_loop.start()
         self.load_new_cogs_loop.start()
@@ -33,7 +39,25 @@ class HotReload(commands.Cog):
         self.hot_reload_loop.stop()
         self.load_new_cogs_loop.stop()
 
+    
+    
 
+    @tasks.loop(seconds=3)
+    async def pull_from_github(self, repository_path: str=GITHUB_REPOSITORY)->None:
+
+        # Ouvrir le référentiel existant
+        repo = git.Repo(repository_path)
+
+        try:
+            # Effectuer un pull depuis la branche actuelle
+            repo.git.pull()
+            logging.info("Pull réussi.")
+        except git.GitCommandError as e:
+            logging.error(f"Erreur lors du pull : {e}")
+
+
+
+                
     @tasks.loop(seconds=3)
     async def hot_reload_loop(self):
         
@@ -83,11 +107,16 @@ class HotReload(commands.Cog):
                 self.last_modified_time[extension] = time
 
 
+    @load_new_cogs_loop.before_loop
+    @hot_reload_loop.before_loop
+    @pull_from_github.before_loop
+    async def demarage(self):
+        await self.bot.wait_until_ready()
+
 
     @load_new_cogs_loop.before_loop
     @hot_reload_loop.before_loop
     async def cache_last_modified_time(self):
-        await self.bot.wait_until_ready()
         self.last_modified_time = {}
         # Mapping = {extension: timestamp}
         for extension in self.bot.extensions.keys():

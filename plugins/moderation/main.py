@@ -23,11 +23,6 @@ class Moderation(commands.Cog):
     async def clear(self, ctx: commands.Context, nombre: int):
         await ctx.defer()
         await ctx.channel.purge(limit=nombre + 1)
-
-    
-    @commands.hybrid_command(name='ping')
-    async def papa(self, ctx: commands.Context):
-        await ctx.send('pong')
         
     
     @commands.command(name='test')

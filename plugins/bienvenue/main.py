@@ -3,12 +3,12 @@ from discord.ext import commands
 
 from pathlib import Path
 import json
+parent_folder = Path(__file__).resolve().parent
 
 from PIL import Image, ImageDraw, ImageFont, ImageSequence, ImageChops
 from io import BytesIO
 import requests
 
-parent_folder = Path(__file__).resolve().parent
 
 
 
@@ -51,7 +51,7 @@ class Bienvenue(commands.Cog):
 
 
     @commands.Cog.listener(name='on_member_remove')
-    async def message_au_revoir(self, member):
+    async def message_au_revoir(self, member: discord.Member):
         logs = self.load_json('logs')
         serveur = member.guild
         
@@ -230,7 +230,7 @@ class Bienvenue(commands.Cog):
         logs = self.load_json('logs')
         return serveur.member_count - logs['bot_count']
 
-    def load_channels(self):
+    def load_channels(self)->dict:
         channels = {}
         for channel_name , channel_id in self.load_json('channels').items():
             channels[channel_name] = self.bot.get_channel(channel_id)
