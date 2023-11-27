@@ -78,6 +78,8 @@ class Rank(commands.Cog):
             await self.create_xp_profile(member)
     
     
+
+    
     async def create_xp_profile(self, member: discord.Member)->None:
         """Ajoutes une ligne à la base de donnée pour le membre
 
