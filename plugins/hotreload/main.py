@@ -54,8 +54,6 @@ class HotReload(commands.Cog):
             if repo.is_dirty():
                 repo.git.pull() 
                 logging.info("Pull réussi")
-            else:
-                logging.info("Aucun pull nécessaire")
         except git.GitCommandError as e:
             logging.info(f"Erreur lors du pull : {e}")
 
