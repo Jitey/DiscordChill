@@ -9,13 +9,13 @@ import git
 
 from icecream import ic
 import logging
-logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 
 
 IGNORE_EXTENSIONS = []
 parent_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
-GITHUB_REPOSITORY = "https://github.com/Jitey/DiscordChill"
+GITHUB_REPOSITORY = "/Users/jitey/Documents/Python/Bot/Discord/DiscordChill"
 
 
 
@@ -33,27 +33,31 @@ class HotReload(commands.Cog):
         self.bot = bot
         self.hot_reload_loop.start()
         self.load_new_cogs_loop.start()
+        self.pull_from_github.start()
 
 
     def cog_unload(self):
         self.hot_reload_loop.stop()
         self.load_new_cogs_loop.stop()
+        self.pull_from_github.stop()
 
     
     
 
-    @tasks.loop(seconds=3)
+    @tasks.loop(seconds=5)
     async def pull_from_github(self, repository_path: str=GITHUB_REPOSITORY)->None:
-
         # Ouvrir le référentiel existant
         repo = git.Repo(repository_path)
 
         try:
             # Effectuer un pull depuis la branche actuelle
-            repo.git.pull()
-            logging.info("Pull réussi.")
+            if repo.is_dirty():
+                repo.git.pull() 
+                logging.info("Pull réussi")
+            else:
+                logging.info("Aucun pull nécessaire")
         except git.GitCommandError as e:
-            logging.error(f"Erreur lors du pull : {e}")
+            logging.info(f"Erreur lors du pull : {e}")
 
 
 
