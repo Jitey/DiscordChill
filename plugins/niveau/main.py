@@ -22,10 +22,21 @@ class XpProfile:
     msg: int
     xp: int
     lvl: int
+    xp_needed: int
 
     
     def check_lvl(self):
-        pass
+        current_lvl = self.lvl
+        
+        while not self.xp < self.xp_to_next_level():
+            self.lvl += 1
+        
+        self.xp_needed = self.xp_to_next_level() - self.xp
+
+        return self.lvl > current_lvl
+    
+    def xp_to_next_level(self):
+        return 5 * (self.lvl ** 2) + (50 * self.lvl) + 100
 
 
 
