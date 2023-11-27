@@ -53,7 +53,7 @@ class HotReload(commands.Cog):
             repo.remotes.origin.fetch()
 
             local_commit = repo.head.commit
-            remote_commit = repo.remotes.origin.refs['master'].commit
+            remote_commit = next(repo.refs['origin/master'].refs).commit
             # Effectuer un pull depuis la branche actuelle
             if local_commit != remote_commit:
                 logging.info("Un nouveau push a été effectué sur le dépôt distant.")
