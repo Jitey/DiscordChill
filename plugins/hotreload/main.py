@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 IGNORE_EXTENSIONS = []
 parent_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
-GITHUB_REPOSITORY = "/Users/jitey/Documents/Python/Bot/Discord/DiscordChill"
+GITHUB_REPOSITORY = "/home/container/DiscordChill"
 
 
 
