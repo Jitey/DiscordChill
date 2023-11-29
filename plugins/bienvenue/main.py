@@ -5,7 +5,7 @@ from pathlib import Path
 import json
 parent_folder = Path(__file__).resolve().parent
 
-from PIL import Image, ImageDraw, ImageFont, ImageSequence, ImageChops
+from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import requests
 
@@ -56,7 +56,7 @@ class Bienvenue(commands.Cog):
         serveur = member.guild
         
         #|----------Message de départ----------|
-        await self.channels['information'].send(f"**{member.display_name}** viens juste de quitter le serveur...")
+        await self.channels['information'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
             
         #|----------Member count----------|
         if member.bot:
@@ -230,11 +230,11 @@ class Bienvenue(commands.Cog):
         logs = self.load_json('logs')
         return serveur.member_count - logs['bot_count']
 
-    def load_channels(self)->dict:
-        channels = {}
-        for channel_name , channel_id in self.load_json('channels').items():
-            channels[channel_name] = self.bot.get_channel(channel_id)
-        return channels
+    def load_channels(self) -> dict:
+        return {
+            channel_name: self.bot.get_channel(channel_id)
+            for channel_name, channel_id in self.load_json('channels').items()
+        }
     
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
