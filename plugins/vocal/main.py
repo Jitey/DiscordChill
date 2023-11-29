@@ -18,7 +18,8 @@ class Vocal(commands.Cog):
         self.bot = bot
 
     
-    
+    def test(self):
+        pass
    
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
