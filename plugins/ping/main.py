@@ -15,3 +15,7 @@ class Ping(commands.Bot):
     async def getPing():
         ping = bot.latency * 1000
         await ctx.send(f'Ping du bot -> {round(ping)}ms !')
+
+
+async def setup(bot: commands.Bot)->None:
+    await bot.add_cog(Ping(bot))
