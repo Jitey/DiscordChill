@@ -5,8 +5,6 @@ from pathlib import Path
 import contextlib
 import json
 
-from icecream import ic
-
 
 
 
@@ -78,7 +76,7 @@ class RoleButton(discord.ui.Button['RoleView']):
             return await interaction.response.send_message(f"{self.role.name} ajouté", ephemeral=True)
 
         except discord.Forbidden:
-            return await interaction.response.send_message(f"Tu n'as pas la permission pour ce role", ephemeral=True)
+            return await interaction.response.send_message("Tu n'as pas la permission pour ce role", ephemeral=True)
             
 
 
@@ -95,7 +93,7 @@ class AutoRole(commands.Cog):
         if not ctx.guild:
             raise commands.NoPrivateMessage()
 
-        game_roles = [role for role in self.game_roles(ctx.guild)]
+        game_roles = list(self.game_roles(ctx.guild))
 
 
         # view = RoleView().add_item(RoleSelectMenu())
@@ -118,11 +116,10 @@ class AutoRole(commands.Cog):
         member = message.author
         channel = self.bot.get_channel(720974238499995658)
 
-        if message.channel.id == channel.id and member != self.bot.user:
-            if message.content != '/role':
-                msg = await message.reply(f"Tu ne peux pas écrire ça ici. Utilise plutot `/role`")
-                await message.delete()
-                return await msg.delete(delay=5)
+        if message.channel.id == channel.id and member != self.bot.user and message.content != '/role':
+            msg = await message.reply("Tu ne peux pas écrire ça ici. Utilise plutot `/role`")
+            await message.delete()
+            return await msg.delete(delay=5)
 
     
 

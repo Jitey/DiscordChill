@@ -35,8 +35,7 @@ class Bienvenue(commands.Cog):
             color=discord.Color.blurple()
         )
         embed.set_thumbnail(url=member.guild.icon.url)
-        # embed.set_image(url="https://media.tenor.com/meKX31nUiPUAAAAd/discord-welcome-gif.gif")
-        embed.set_footer(icon_url=member.avatar.url ,text=f"{member.name} | Membre {self.member_count(serveur)}")
+        embed.set_footer(icon_url=member.avatar.url ,text=f"{member.display_name} | Membre {self.member_count(serveur)}")
 
         image = self.image_bienvenue(member, serveur)
         embed.set_image(url="attachment://welcome_card.png")
