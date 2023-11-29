@@ -13,13 +13,9 @@ from dataclasses import dataclass
 
 
 
-class Rank(commands.Cog):
+class Vocal(commands.Cog):
     def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
         self.bot = bot
-        self.connection = connection
-        self.last_message_time = {}
-        self.channel = self.load_json('channels')
-
 
     
     
@@ -51,4 +47,4 @@ class Rank(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Rank(bot, bot.connection))
+    await bot.add_cog(Vocal(bot, bot.connection))
