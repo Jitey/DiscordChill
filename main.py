@@ -14,9 +14,13 @@ load_dotenv(dotenv_path=f"{parent_folder}/.env")
 
 PREFIX = '='
 
+IGNORE_EXTENSIONS = ['ping']
+
 async def load_all_extensions(bot: commands.Bot):
     for plugin in glob.glob(f"{parent_folder}/plugins/**"):
-        await bot.load_extension(f"plugins.{plugin.split('/')[-1]}.main")
+        extention = plugin.split('/')[-1]
+        if extention not in IGNORE_EXTENSIONS:
+            await bot.load_extension(f"plugins.{extention}.main")
         
 
 

@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 
 
-IGNORE_EXTENSIONS = []
+IGNORE_EXTENSIONS = ['ping']
 plugins_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
 parent_folder = pathlib.Path(__file__).resolve().parent
 GITHUB_REPOSITORY = "/home/container/DiscordChill"
@@ -76,7 +76,8 @@ class HotReload(commands.Cog):
     @tasks.loop(seconds=3)
     async def hot_reload_loop(self):
         for extension in list(self.bot.extensions.keys()):
-            if extension in IGNORE_EXTENSIONS:
+            extension_name = extension.split('.')[1]
+            if extension_name in IGNORE_EXTENSIONS:
                 continue
             path = path_from_extension(extension)
             time = os.path.getmtime(path)
@@ -106,7 +107,8 @@ class HotReload(commands.Cog):
             path = path_from_extension(extension)
             time = os.path.getmtime(path)
             
-            if extension in self.bot.extensions:
+            extension_name = extension.split('.')[1]
+            if extension in self.bot.extensions or extension_name in IGNORE_EXTENSIONS:
                 continue
             
             try:
