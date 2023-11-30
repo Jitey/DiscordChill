@@ -6,7 +6,7 @@ parent_folder = Path(__file__).resolve().parent
 import json
 import aiosqlite
 
-from dataclasses import dataclass
+from icecream import ic
 
 
 
@@ -14,12 +14,16 @@ from dataclasses import dataclass
 
 
 class Vocal(commands.Cog):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
+    def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
 
     
-    def test(self):
-        pass
+    @commands.Cog.listener(name="on_voice_state_update")
+    async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+        ic(member)
+        ic(before)
+        ic(after)
+   
    
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
@@ -48,4 +52,4 @@ class Vocal(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Vocal(bot, bot.connection))
+    await bot.add_cog(Vocal(bot))
