@@ -7,6 +7,9 @@ import json
 
 class Ping(commands.Bot):
 
+    def __init__(self, bot: commands.Bot)->None:
+        self.bot = bot
+
     @commands.hybrid_command() (name='ping')
     async def get_ping(self, ctx, *args):
         ping = self.bot.latency * 1000
