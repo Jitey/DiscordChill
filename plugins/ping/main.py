@@ -7,13 +7,17 @@ import json
 
 class Ping(commands.Bot):
 
-    @commands.command(name='getPing')
+    @commands.hybrid_command() (name='ping')
     async def get_ping(self, ctx, *args):
         ping = self.bot.latency * 1000
        
         #|---------Ping---------|
         embed = discord.Embed(
-            resPing=f'Ping du bot -> {round(ping)}ms !'
+            title =f'Ping du bot -> {round(ping)}ms !'
         )
-        await self.channel.send( embed=embed)
-            
+        await self.channel.send(embed=embed)
+        
+    async def setup(bot: commands.Bot)->None:
+        await bot.add_cog(Ping(bot))
+
+    
