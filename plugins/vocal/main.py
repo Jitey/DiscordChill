@@ -16,13 +16,29 @@ from icecream import ic
 class Vocal(commands.Cog):
     def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
+        self.own_channels = {}
+        self.category_id = 1178410507187802222
 
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
-        ic(member)
+        serveur = member.guild
+        if after.channel.id == 1179547113487605761:
+            self.own_channels[member.id] = await serveur.create_voice_channel(member.display_name)
+            await member.move_to(self.own_channels[member.id])
+            
+        
+        
+    @commands.Cog.listener(name="on_voice_state_update")
+    async def end_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+        serveur = member.guild
         ic(before)
-        ic(after)
+        try:
+            if before.channel.id == self.own_channels[member.id]:
+                await serveur._remove_channel(self.own_channels[member.id])
+                
+        except AttributeError:
+            pass
    
    
     def load_json(self, file: str)->dict:
