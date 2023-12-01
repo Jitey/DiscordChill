@@ -16,9 +16,9 @@ from icecream import ic
 class Vocal(commands.Cog):
     def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
-        self.own_channels = {}
         self.main_salon_id = 1179547113487605761
         self.category_id = 1178410507187802222
+        self.own_channels = {}
 
     
     # @commands.Cog.listener(name="on_voice_state_update")
