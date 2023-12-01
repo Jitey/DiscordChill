@@ -54,21 +54,24 @@ class HotReload(commands.Cog):
         Args:
             repository_path (str, optional): Chemin local du répertoire
         """
-        repo = git.Repo(repository_path)
-        
-        with open(f"{parent_folder}/save.json", 'r') as f:
-            last_commit_saved_str = json.load(f)['last_commit']
-        last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
         try:
-            last_commit = repo.head.commit
-            if last_commit.committed_datetime > last_commit_saved:
-                repo.git.pull() 
-                with open(f"{parent_folder}/save.json", 'w') as f:
-                    json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
-                logging.info("Pull réussi")
-        except git.GitCommandError as e:
-            logging.info(f"Erreur lors du pull : {e}")
-
+            repo = git.Repo(repository_path)
+            
+            with open(f"{parent_folder}/save.json", 'r') as f:
+                last_commit_saved_str = json.load(f)['last_commit']
+            last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
+            try:
+                last_commit = repo.head.commit
+                if last_commit.committed_datetime > last_commit_saved:
+                    repo.git.pull() 
+                    with open(f"{parent_folder}/save.json", 'w') as f:
+                        json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
+                    logging.info("Pull réussi")
+            except git.GitCommandError as e:
+                logging.info(f"Erreur lors du pull : {e}")
+        except Exception as e:
+            logging.info(e.__class__)
+            logging.error(e)
 
 
                 
