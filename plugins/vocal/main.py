@@ -17,6 +17,7 @@ class Vocal(commands.Cog):
     def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
         self.own_channels = {}
+        self.main_salon_id = 1179547113487605761
         self.category_id = 1178410507187802222
 
     
