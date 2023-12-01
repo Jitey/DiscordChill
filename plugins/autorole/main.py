@@ -2,13 +2,10 @@ import discord
 from discord.ext import commands
 
 from pathlib import Path
-import contextlib
-import json
-
-
-
-
 parent_folder = Path(__file__).resolve().parent
+
+
+
 
 
 class RoleView(discord.ui.View):
@@ -135,28 +132,6 @@ class AutoRole(commands.Cog):
         for role in serveur.roles:
             if 'Tryhard' in role.name:
                 yield role
-
-    def load_json(self, file: str)->dict:
-        """"Récupère les données du fichier json
-
-        Args:
-            file (str): Nom du fichier
-
-        Returns:
-            dict: Données enregistrées
-        """
-        with open(f"{parent_folder}/{file}.json", 'r') as f:
-            return json.load(f)
-
-    def update_logs(self, data: dict, path: str)->None:
-        """Enregistre le fichier logs
-
-        Args:
-            data (dict): Données à enregistrer
-            path (str): Chemin du fichier à enregistrer
-        """
-        with open(f"{parent_folder}/{path}.json", 'w') as f:
-            json.dump(data,f,indent=2) 
 
 
 

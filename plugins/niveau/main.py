@@ -387,17 +387,6 @@ class Rank(commands.Cog):
         with open(f"{parent_folder}/{file}.json", 'r') as f:
             return json.load(f)
 
-    def update_logs(self, data: dict | list, path: str)->None:
-        """Enregistre le fichier logs
-
-        Args:
-            data (dict): Données à enregistrer
-            path (str): Chemin du fichier à enregistrer
-        """
-        with open(f"{parent_folder}/{path}.json", 'w') as f:
-            json.dump(data,f,indent=2) 
-
-
 
 
 
