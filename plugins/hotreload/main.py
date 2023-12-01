@@ -11,6 +11,7 @@ from datetime import datetime as dt
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+from icecream import ic
 
 
 
@@ -55,18 +56,23 @@ class HotReload(commands.Cog):
             repository_path (str, optional): Chemin local du répertoire
         """
         try:
+            ic('git_loop')
             repo = git.Repo(repository_path)
             
+            ic('git_repo')
             with open(f"{parent_folder}/save.json", 'r') as f:
                 last_commit_saved_str = json.load(f)['last_commit']
             last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
             try:
                 last_commit = repo.head.commit
+                ic('git_commit')
                 if last_commit.committed_datetime > last_commit_saved:
+                    ic('git_pull')
                     repo.git.pull() 
                     with open(f"{parent_folder}/save.json", 'w') as f:
                         json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
                     logging.info("Pull réussi")
+                ic('git_fini')
             except git.GitCommandError as e:
                 logging.info(f"Erreur lors du pull : {e}")
         except Exception as e:
