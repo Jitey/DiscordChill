@@ -17,7 +17,7 @@ class Vocal(commands.Cog):
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
-        """Créer un salon à la connexion dans "➕ Créer ton salon"
+        """Créer un salon à la connexion dans '➕ Créer ton salon'
 
         Args:
             member (discord.Member): Membre du serveur

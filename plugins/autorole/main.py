@@ -17,31 +17,6 @@ class RoleView(discord.ui.View):
 
 
 
-# class RoleSelectMenu(discord.ui.RoleSelect["RoleView"]):
-#     def __init__(self) -> None:
-#         super().__init__(
-#             placeholder="Choisit tes rôles ici",
-#             max_values=25
-#             )
-
-        
-#     async def callback(self, interaction: discord.Interaction):
-#         new_view = RoleView()
-
-#         for role in self.values:
-#             new_view.add_item(RoleButton(role))
-
-#         embed = discord.Embed(
-#             title="Role Select", 
-#             description="Clique sur les boutons pour obtenir tes rôles",
-#             color=discord.Color.random()
-#         )
-
-#         embed.set_thumbnail(url=interaction.guild.icon.url)
-
-#         await interaction.response.edit_message(embed=embed, view=new_view)
-
-
 class RoleButton(discord.ui.Button['RoleView']):
     def __init__(self, serveur: discord.Guild, role: discord.Role)->None:
         game_name = " ".join(role.name.split(' ')[1:])       # Supprime 'Tryhard' du nom

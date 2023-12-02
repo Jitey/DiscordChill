@@ -25,27 +25,29 @@ class Bienvenue(commands.Cog):
 
     @commands.Cog.listener(name='on_member_join')
     async def message_bienvenue(self, member: discord.Member):
-        logs = self.load_json('logs')
         serveur = member.guild
         
         #|----------Message de bienvenue----------|
-        embed = discord.Embed(
-            title=f"Bienvenue {member.display_name} !",
-            description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
-            color=discord.Color.blurple()
-        )
-        embed.set_thumbnail(url=member.guild.icon.url)
-        embed.set_footer(icon_url=member.avatar.url ,text=f"{member.display_name} | Membre {self.member_count(serveur)}")
+        if not member.bot:
+            embed = discord.Embed(
+                title=f"Bienvenue {member.display_name} !",
+                description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
+                color=discord.Color.blurple()
+            )
+            embed.set_thumbnail(url=member.guild.icon.url)
+            embed.set_footer(icon_url=member.avatar.url ,text=f"{member.display_name} | Membre {self.member_count(serveur)}")
 
-        image = self.image_bienvenue(member, serveur)
-        embed.set_image(url="attachment://welcome_card.png")
-        
-        await self.channels['information'].send( embed=embed, file=image)
+            image = self.image_bienvenue(member, serveur)
+            embed.set_image(url="attachment://welcome_card.png")
             
-        #|----------Member count----------|
-        if member.bot:
+            await self.channels['information'].send( embed=embed, file=image)
+                
+        else:
+            logs = self.load_json('logs')
             logs['bot_count'] += 1
             self.update_logs(logs, 'logs')
+
+        #|----------Member count----------|
         await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
 
@@ -55,12 +57,14 @@ class Bienvenue(commands.Cog):
         serveur = member.guild
         
         #|----------Message de départ----------|
-        await self.channels['information'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
+        if not member.bot:
+            await self.channels['information'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
             
-        #|----------Member count----------|
-        if member.bot:
+        else:
             logs['bot_count'] -= 1
             self.update_logs(logs, 'logs')
+
+        #|----------Member count----------|
         await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
         

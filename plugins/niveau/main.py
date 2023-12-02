@@ -41,7 +41,7 @@ def format_float(number):
 
 class ResetView(discord.ui.View):
     def __init__(self, connection: aiosqlite.Connection, member_target: discord.Member)->None:
-        super.__init__()
+        super().__init__()
         self.connection = connection
         self.member_target = member_target
 
@@ -54,7 +54,10 @@ class ResetView(discord.ui.View):
             res = "UPDATE Rank SET msg=0, xp=0, lvl=0 WHERE id==?"
             await self.connection.execute(res, (self.member_target.id,))
             await self.connection.commit()
-            return await self.disable_all_buttons
+            
+            await self.update_classement()
+            await self.disable_all_buttons(interaction)
+            await interaction.response.defer()
         else:
             await interaction.response.send_message("Tu n'as pas la permission pour ça", ephemeral=True)
 
@@ -64,10 +67,8 @@ class ResetView(discord.ui.View):
         member = interaction.user
 
         if member.guild_permissions.administrator:
-            res = "UPDATE Rank SET msg=0, xp=0, lvl=0 WHERE id==?"
-            await self.connection.execute(res, (member.id))
-            await self.connection.commit()
-            return await self.disable_all_buttons
+            await self.disable_all_buttons(interaction)
+            await interaction.response.defer()
         else:
             await interaction.response.send_message("Tu n'as pas la permission pour ça", ephemeral=True)
 
@@ -78,6 +79,14 @@ class ResetView(discord.ui.View):
                 child.disabled = True
         
         await interaction.message.edit(view=self)
+        
+        
+    async def update_classement(self):
+        """Range par odre décroissant d'xp les membrs dans a bdd
+        """
+        req = "UPDATE Rank SET rang=DENSE_RANK() OVER (ORDER BY Rank.xp DESC) FROM Rank t2 WHERE t2.id = Rank.id"
+        await self.connection.execute(req)
+        await self.connection.commit()
 
 
 
@@ -91,6 +100,10 @@ class XpProfile:
     xp: int
     lvl: int
     rang: int
+    add_xp_counter: int
+    remove_xp_counter: int
+    added_xp: int
+    removed_xp: int
     xp_needed: int=0
     current_xp: int=0
     
@@ -195,8 +208,42 @@ class Rank(commands.Cog):
 
 
     
+    @commands.hybrid_command(name='add_xp')
+    async def add_xp(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+        member = ctx.author
+
+        if member.guild_permissions.administrator:
+            await self.manage_xp('add', member_target.id, amout)
+            embed = discord.Embed(
+                title="Ajout d'XP",
+                description=f"{amout}XP ajouté à {member_target.display_name}",
+                color=discord.Color.random()
+            )
+            embed.set_author(icon_url=member.avatar.url, name=member.display_name)
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+
+    
+    @commands.hybrid_command(name='remove_xp')
+    async def remove_xp(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+        member = ctx.author
+
+        if member.guild_permissions.administrator:
+            await self.manage_xp('remove', member_target.id, amout)
+            embed = discord.Embed(
+                title="Retrait d'XP",
+                description=f"{amout}XP retiré à {member_target.display_name}",
+                color=discord.Color.random()
+            )
+            embed.set_author(icon_url=member.avatar.url, name=member.display_name)
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+
+    
     @commands.hybrid_command(name='reset_xp')
-    async def rang(self, ctx: commands.Context, member_target: discord.Member)->discord.Message:
+    async def reset_xp(self, ctx: commands.Context, member_target: discord.Member)->discord.Message:
         member = ctx.author
 
         if member.guild_permissions.administrator:
@@ -246,7 +293,7 @@ class Rank(commands.Cog):
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
         for id , stat in res.items():
             member = self.bot.get_user(id)
-            embed.add_field(name=f"{self.rank_emoji(stat.rang)} {member.display_name}", value=f"Total XP: {stat.xp}", inline=False)
+            embed.add_field(name=f"{self.rank_emoji(stat.rang)} {member.display_name}", value=f"Total XP: {stat.print_xp(stat.xp)}", inline=False)
         embed.set_footer()
         
         return await ctx.send(embed=embed)
@@ -274,7 +321,7 @@ class Rank(commands.Cog):
         
         # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
         if profile := await self.get_member_stats(member.id):
-            await self.add_xp(profile)
+            await self.on_message_xp(profile)
 
             self.last_message_time[member.id] = current_time
         else:
@@ -282,7 +329,33 @@ class Rank(commands.Cog):
             await self.message_sent(message)
     
     
-    async def add_xp(self, stat: tuple | XpProfile):
+    async def manage_xp(self, action: str, member_id: int, amount: int):
+        """Ajoute ou retire la quantité d'xp donné
+
+        Args:
+            action (str): Ajouter ou retirer de l'xp
+            member_id (int): Id du membre
+            amount (int): Quantité d'xp
+        """
+        stat = self.get_all_member_stats(member_id)
+        
+        if action == 'add':
+            stat.xp += amount
+            xp_counter = stat.add_xp_counter + 1
+            res = "UPDATE Rank SET xp=?, lvl=?, add_xp_counteer=?, added_xp=? WHERE id==?"
+        elif action == 'remove':
+            stat.xp -= amount
+            xp_counter = stat.remove_xp_counter + 1
+            res = "UPDATE Rank SET xp=?, lvl=?, remove_xp_counteer=?, removeed_xp=? WHERE id==?"
+            
+        stat.check_lvl()
+
+        await self.connection.execute(res, (stat.msg, stat.xp, stat.lvl, xp_counter, amount, stat.id))
+        await self.connection.commit()
+
+        await self.update_classement()
+    
+    async def on_message_xp(self, stat: tuple | XpProfile):
         """Ajoute de l'xp au membre et regard si il a level up
 
         Args:
@@ -337,7 +410,7 @@ class Rank(commands.Cog):
         req = "SELECT * FROM Rank WHERE id==?"
         curseur = await self.connection.execute(req, (member_id,))
 
-        # Valeues attendue : id , name , msg , xp , lvl
+        # Valeues attendue : id , name , msg , xp , lvl , rang , add_xp_counter ...
         return await curseur.fetchone()
     
     async def get_all_member_stats(self) -> dict[XpProfile]:
