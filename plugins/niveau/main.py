@@ -10,12 +10,10 @@ from dataclasses import dataclass
 from numpy import random as rd
 from datetime import datetime as dt
 
+
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import math
-
-import streamlit as st
-import pandas as pd
 
 
 def round_it(x:float, sig: int)->float:
@@ -36,29 +34,6 @@ def format_float(number):
 
     return str_number.rstrip('0').rstrip('.') if '.' in str_number else str_number
     
-
-
-
-class Dashboard():
-    def __init__(self, connection) -> None:
-        self.connection = connection
-    
-    async def generate(self):
-        st.title("Votre leaderboard")
-
-        req = "SELECT * FROM Rank ORDER BY rang LIMIT 5"
-        stats = await self.connection.execute_fetchall(req)
-        data = {
-            "Utilisateur": ["Utilisateur1", "Utilisateur2", "Utilisateur3"],
-            "Points": [100, 75, 50]
-        }
-
-        # Créez un DataFrame pandas avec vos données
-        df = pd.DataFrame(data)
-
-        # Affichez le tableau avec les données
-        st.table(df)
-
 
 
 
@@ -326,7 +301,6 @@ class Rank(commands.Cog):
 
     @commands.hybrid_command(name='dashboard')
     async def dashboard(self, ctx: commands.Context)->discord.Message:
-        # Dashboard(self.connection)
         return await ctx.send("Commande en cours de développement")
         
         

@@ -12,7 +12,7 @@ class Vocal(commands.Cog):
     def __init__(self, bot: commands.Bot)->None:
         self.bot = bot
         self.channels = self.load_json('channels')
-        self.own_channels = {}
+        self.own_channels = []
 
     
     @commands.Cog.listener(name="on_voice_state_update")
@@ -28,7 +28,7 @@ class Vocal(commands.Cog):
         category = discord.utils.get(serveur.categories, id=self.channels['gaming_category'])
         try:
             if after.channel.id == self.channels['main_salon']:
-                self.own_channels[member.id] = await serveur.create_voice_channel(member.display_name,category=category)
+                self.own_channels[after.channel.id] = await serveur.create_voice_channel(member.display_name,category=category)
                 await member.move_to(self.own_channels[member.id])
             
         except AttributeError:
@@ -45,9 +45,10 @@ class Vocal(commands.Cog):
             after (discord.VoiceState): État vocal après la connexion
         """
         try:
-            if channel := self.own_channels[member.id]:
+            if channel := self.own_channels[before.channel.id]:
                 if before.channel.id == channel.id and not channel.members: 
-                    await self.own_channels[member.id].delete()
+                    await self.own_channels[before.channel.id].delete()
+                    del self.own_channels[before.channel.id]
 
         except (AttributeError, KeyError):
             pass
