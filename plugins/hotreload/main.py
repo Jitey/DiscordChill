@@ -57,10 +57,8 @@ class HotReload(commands.Cog):
             repository_path (str, optional): Chemin local du répertoire
         """
         try:
-            ic('repo')
             repo = git.Repo(repository_path)
             
-            ic('date')
             with open(f"{parent_folder}/save.json", 'r') as f:
                 last_commit_saved_str = json.load(f)['last_commit']
             ic(last_commit_saved_str)
