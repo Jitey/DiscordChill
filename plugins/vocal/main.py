@@ -62,7 +62,7 @@ class VocalProfile:
         """Calcule le niveau à partir de l'xp totale
 
         Returns:
-            bool: _description_
+            bool: Si on a rank up ou non
         """
         current_lvl = self.lvl
         
