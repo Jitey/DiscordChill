@@ -131,7 +131,6 @@ class HotReload(commands.Cog):
 
     @pull_from_github.before_loop
     async def demarage(self):
-        await self.bot.wait_until_ready()
         with open(f"{parent_folder}/save.json", 'r') as f:
             self.last_commit = json.load(f)['last_commit']
 
