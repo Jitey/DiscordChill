@@ -57,16 +57,22 @@ class HotReload(commands.Cog):
             repository_path (str, optional): Chemin local du répertoire
         """
         try:
+            ic('repo')
             repo = git.Repo(repository_path)
             
+            ic('date')
             with open(f"{parent_folder}/save.json", 'r') as f:
                 last_commit_saved_str = json.load(f)['last_commit']
+            ic('saved')
             last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
             try:
+                ic('commit')
                 last_commit = repo.head.commit
+                ic(last_commit.committed_datetime > last_commit_saved)
                 if last_commit.committed_datetime > last_commit_saved:
                     repo.git.execute('git reset --hard origin/main') 
                     repo.git.pull() 
+                    ic("pull")
                     with open(f"{parent_folder}/save.json", 'w') as f:
                         json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
                     logging.info("Pull réussi")
