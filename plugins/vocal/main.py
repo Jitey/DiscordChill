@@ -239,12 +239,11 @@ class Vocal(commands.Cog):
                     time_spend = 0
                     afk = int(time.perf_counter() - self.afk_time_counter[member.id])
 
-                if await self.get_member_stats(member.id):
-                    await self.connection.execute(req, (time_spend, afk, member.id))
-                    await self.connection.commit()
-                
-                else:
+                if not await self.get_member_stats(member.id):
                     await self.create_vocal_profile(member)
+                
+                await self.connection.execute(req, (time_spend, afk, member.id))
+                await self.connection.commit()
                 
         except KeyError:
             pass
