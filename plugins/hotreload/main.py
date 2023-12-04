@@ -76,7 +76,6 @@ class HotReload(commands.Cog):
         except Exception as e:
             logging.info(e.__class__)
             logging.error(e)
-            print(e)
 
 
                 
