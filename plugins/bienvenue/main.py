@@ -53,7 +53,6 @@ class Bienvenue(commands.Cog):
 
     @commands.Cog.listener(name='on_member_remove')
     async def message_au_revoir(self, member: discord.Member):
-        logs = self.load_json('logs')
         serveur = member.guild
         
         #|----------Message de départ----------|
@@ -61,6 +60,7 @@ class Bienvenue(commands.Cog):
             await self.channels['information'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
             
         else:
+            logs = self.load_json('logs')
             logs['bot_count'] -= 1
             self.update_logs(logs, 'logs')
 

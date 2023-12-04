@@ -11,7 +11,7 @@ from numpy import random as rd
 from datetime import datetime as dt
 
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from io import BytesIO
 import math
 
@@ -219,7 +219,6 @@ class Rank(commands.Cog):
                 description=f"{amout}XP ajouté à {member_target.display_name}",
                 color=discord.Color.random()
             )
-            embed.set_author(icon_url=member.avatar.url, name=member.display_name)
             await ctx.send(embed=embed)
         else:
             await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
@@ -236,7 +235,6 @@ class Rank(commands.Cog):
                 description=f"{amout}XP retiré à {member_target.display_name}",
                 color=discord.Color.random()
             )
-            embed.set_author(icon_url=member.avatar.url, name=member.display_name)
             await ctx.send(embed=embed)
         else:
             await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
@@ -256,12 +254,9 @@ class Rank(commands.Cog):
     async def rang(self, ctx: commands.Context, member: discord.Member=None)->discord.Message:
         if not member:
             member = ctx.author
-
-        req = "SELECT * FROM Rank WHERE id==?"
-        curseur = await self.connection.execute(req, (member.id,))
         
         # Valeues attendue : id , name , msg , xp , lvl
-        if profile := await curseur.fetchone():
+        if profile := await self.get_member_stats(member.id):
             stat = XpProfile(*profile)
             
             color = discord.Color.random()
