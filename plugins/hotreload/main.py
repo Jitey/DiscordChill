@@ -11,6 +11,7 @@ from datetime import datetime as dt
 
 import logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+from icecream import ic
 
 
 
@@ -56,6 +57,7 @@ class HotReload(commands.Cog):
             repository_path (str, optional): Chemin local du répertoire
         """
         try:
+            ic('Coucou')
             repo = git.Repo(repository_path)
             
             with open(f"{parent_folder}/save.json", 'r') as f:

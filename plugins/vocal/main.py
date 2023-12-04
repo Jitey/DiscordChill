@@ -172,7 +172,7 @@ class Vocal(commands.Cog):
             await ctx.send(embed=embed)
 
         else:
-            await ctx.send("Tu n'as jamais envoyé de message")
+            await ctx.send("Tu ne t'es jamais connecté en vocal")
 
 
     
@@ -239,8 +239,12 @@ class Vocal(commands.Cog):
                     time_spend = 0
                     afk = int(time.perf_counter() - self.afk_time_counter[member.id])
 
-                await self.connection.execute(req, (time_spend, afk, member.id))
-                await self.connection.commit()
+                if await self.get_member_stats(member.id):
+                    await self.connection.execute(req, (time_spend, afk, member.id))
+                    await self.connection.commit()
+                
+                else:
+                    await self.create_vocal_profile(member)
                 
         except KeyError:
             pass
