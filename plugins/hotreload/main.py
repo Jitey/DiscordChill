@@ -63,7 +63,7 @@ class HotReload(commands.Cog):
             ic('date')
             with open(f"{parent_folder}/save.json", 'r') as f:
                 last_commit_saved_str = json.load(f)['last_commit']
-            ic('saved')
+            ic(last_commit_saved_str)
             last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
             try:
                 ic('commit')
