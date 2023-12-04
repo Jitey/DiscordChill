@@ -45,16 +45,32 @@ class VocalProfile:
     time_spend: int
     afk: int
     rang: int
+    name: str
+    lvl: int
     current_xp: int=0
     xp_needed: int=0
 
     
     def __post_init__(self):
-        self.xp_needed = "formule"
+        next_lvl = self.lvl + 1
+        self.xp_needed = 5 * (next_lvl ** 2) + (50 * next_lvl) + 100
 
-        self.current_xp = "formule"
+        self.current_xp = self.xp - self.xp_to_level(self.lvl)
 
     
+    def check_lvl(self)->bool:
+        """Calcule le niveau à partir de l'xp totale
+
+        Returns:
+            bool: _description_
+        """
+        current_lvl = self.lvl
+        
+        if self.current_xp > self.xp_needed:
+            self.lvl += 1
+            self.__post_init__()
+
+        return self.lvl > current_lvl
 
     def time_to_level(self, lvl_target: int)->int:
         """Calcule l'xp nécessaire pour un niveau donné
@@ -67,9 +83,9 @@ class VocalProfile:
         """
         return sum(5 * (i ** 2) + (50 * i) + 100 for i in range(lvl_target))
 
-    def print_xp(self, xp: int)->str:
-        rounded_xp = round_it(xp, 3)
-        return rounded_xp if rounded_xp < 1e3 else f"{format_float(rounded_xp/1e3)}K"
+    def print_tps(self, xp: int)->str:
+        rounded_tps = round_it(xp, 3)
+        return rounded_tps if rounded_tps < 1e3 else f"{format_float(rounded_tps/1e3)}K"
     
     def create_progress_bar(self, color: int | tuple=0x000000):
         if isinstance(color, int):
@@ -136,7 +152,6 @@ class Vocal(commands.Cog):
         self.own_channels = {}
         self.voice_time_counter = {}
         self.afk_time_counter = {}
-        self.afk_channel = None
         
     
     @commands.Cog.listener(name="on_ready")
@@ -146,10 +161,11 @@ class Vocal(commands.Cog):
 
 
     @commands.hybrid_command(name='vrang')
-    async def rang(self, ctx: commands.Context, member: discord.Member=None)->discord.Message:
+    async def vrang(self, ctx: commands.Context, member: discord.Member=None)->discord.Message:
         if not member:
             member = ctx.author
 
+        await self.update_classement()
         
         # Valeues attendue : id , name , msg , xp , lvl
         if profile := await self.get_member_stats(member.id):
@@ -163,7 +179,7 @@ class Vocal(commands.Cog):
             embed.set_thumbnail(url=member.avatar.url)
             embed.add_field(name="",value=f"{member.display_name}", inline=True)
             embed.add_field(name="", value="", inline=True)
-            embed.add_field(name="", value=f"{stat.print_xp(stat.current_xp)} / {stat.print_xp(stat.xp_needed)} XP", inline=True)
+            embed.add_field(name="", value=f"{stat.print_tps(stat.current_xp)} / {stat.print_tps(stat.xp_needed)} min", inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url)
 
             # progress_bar = stat.create_progress_bar(int(color))
@@ -175,7 +191,22 @@ class Vocal(commands.Cog):
             await ctx.send("Tu ne t'es jamais connecté en vocal")
 
 
-    
+    @commands.hybrid_command(name='vleaderboard')
+    async def leaderboard(self, ctx: commands.Context)->discord.Message:
+        embed = discord.Embed(
+            title="Leaderboard",
+            color=discord.Color.random()
+        )
+        res = await self.get_leaderboard()
+        embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
+        for id , stat in res.items():
+            member = self.bot.get_user(id)
+            embed.add_field(name=f"{self.rank_emoji(stat.rang)} {member.display_name}", value=f"Total Tps: {stat.print_tps(stat.time_spend)}", inline=False)
+        embed.set_footer()
+        
+        return await ctx.send(embed=embed)
+
+
     @commands.Cog.listener(name="on_voice_state_update")
     async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
         """Créer un salon à la connexion dans '➕ Créer ton salon'
@@ -218,19 +249,22 @@ class Vocal(commands.Cog):
    
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_join(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
-        if not before.channel or before.channel.id == self.afk_channel.id:
-            if after.channel.id != self.afk_channel.id:
-                self.voice_time_counter[member.id] = time.perf_counter()
+        try:
+            if not before.channel or before.channel.id == self.afk_channel.id:
+                if after.channel.id != self.afk_channel.id:
+                    self.voice_time_counter[member.id] = time.perf_counter()
 
-            else:
-                self.afk_time_counter[member.id] = time.perf_counter()
+                else:
+                    self.afk_time_counter[member.id] = time.perf_counter()
+        
+        except AttributeError:
+            pass    
     
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
         try:
             if not after.channel or after.channel.id == self.afk_channel.id:
-                req = "UPDATE Vocal SET time=?, afk=? WHERE id==?"
                 if before.channel.id != self.afk_channel.id:
                     time_spend = int(time.perf_counter() - self.voice_time_counter[member.id])
                     afk = 0
@@ -239,21 +273,43 @@ class Vocal(commands.Cog):
                     time_spend = 0
                     afk = int(time.perf_counter() - self.afk_time_counter[member.id])
 
-                if not await self.get_member_stats(member.id):
+                if profile := await self.get_member_stats(member.id):
+                    await self.on_vocal_xp(profile, time_spend, afk)
+                else:
                     await self.create_vocal_profile(member)
-                
-                await self.connection.execute(req, (time_spend, afk, member.id))
-                await self.connection.commit()
-                
-        except KeyError:
+                    await self.on_vocale_leave(member, before, after)
+                       
+        except (AttributeError,KeyError):
             pass
    
 
+
+    async def on_vocal_xp(self, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
+        """Ajoute de l'xp au membre et regard si il a level up
+
+        Args:
+            stat (tuple | XpProfile): Stats du membre
+        """
+        if isinstance(stat, tuple):
+            stat = VocalProfile(*stat)
+        
+        stat.time_spend += time_spend
+        stat.afk += afk
+        req = "UPDATE Vocal SET time=?, afk=? WHERE id==?"
+        
+        if stat.check_lvl():
+            channel = self.bot.get_channel(self.channel['rank'])
+            await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
+        
+        await self.connection.execute(req, (stat.time_spend, afk, stat.id))
+        await self.connection.commit()
+
+        await self.update_classement()
     
     async def update_classement(self):
         """Range par odre décroissant de temps passé en vocal les membrs dans la bdd
         """
-        req = "UPDATE Vocal SET rang=DENSE_RANK() OVER (ORDER BY Vocal.xp DESC) FROM Vocal t2 WHERE t2.id = Vocal.id"
+        req = "UPDATE Vocal SET rang=DENSE_RANK() OVER (ORDER BY Vocal.time DESC) FROM Vocal t2 WHERE t2.id = Vocal.id"
         await self.connection.execute(req)
         await self.connection.commit()
     
@@ -285,6 +341,30 @@ class Vocal(commands.Cog):
         # Valeues attendue : id , time , afk , rang , name
         return await curseur.fetchone()
     
+    async def get_leaderboard(self) -> dict[VocalProfile]:
+        """Renvoie un dictionnaire de tout les profils
+
+        Returns:
+            dict[VocalProfile]: Profils de tout les membres
+        """
+        req = "SELECT * FROM Vocal ORDER BY rang LIMIT 5"
+        stats = await self.connection.execute_fetchall(req)
+
+        return {stat[0]: VocalProfile(*stat) for stat in stats}
+   
+    def rank_emoji(self, rang: int)->str:
+        match rang:
+            case 1:
+                return ':first_place:'
+            case 2:
+                return ':second_place:' 
+            case 3:
+                return ':third_place:'
+            case _:
+                return f"{rang}:"
+
+   
+ 
    
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json

@@ -72,8 +72,9 @@ class HotReload(commands.Cog):
             except git.GitCommandError as e:
                 logging.info(f"Erreur lors du pull : {e}")
         except Exception as e:
-            logging.info(e.__class__)
-            logging.error(e)
+            # logging.info(e.__class__)
+            # logging.error(e)
+            pass
 
 
                 

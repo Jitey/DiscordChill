@@ -20,7 +20,7 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='clear', description="Efface les messages d'un channel")
     @commands.has_permissions(manage_messages=True)
     @commands.guild_only()
-    async def clear(self, ctx: commands.Context, nombre: int):
+    async def clear(self, ctx: commands.Context, nombre: int=1):
         await ctx.defer()
         await ctx.channel.purge(limit=nombre + 1)
         
