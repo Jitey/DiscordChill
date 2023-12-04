@@ -66,8 +66,8 @@ class HotReload(commands.Cog):
             ic(last_commit_saved_str)
             last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
             try:
-                ic('commit')
                 last_commit = repo.head.commit
+                ic(last_commit)
                 ic(last_commit.committed_datetime > last_commit_saved)
                 if last_commit.committed_datetime > last_commit_saved:
                     ic("pull")
