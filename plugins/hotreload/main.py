@@ -57,6 +57,7 @@ class HotReload(commands.Cog):
             repository_path (str, optional): Chemin local du répertoire
         """
         try:
+            ic('coucou')
             repo = git.Repo(repository_path)
             
             with open(f"{parent_folder}/save.json", 'r') as f:
