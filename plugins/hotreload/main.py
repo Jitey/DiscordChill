@@ -71,7 +71,6 @@ class HotReload(commands.Cog):
                 ic(last_commit.committed_datetime > last_commit_saved)
                 if last_commit.committed_datetime > last_commit_saved:
                     ic("pull")
-                    # repo.git.execute('git reset --hard origin/main') 
                     repo.git.pull() 
                     with open(f"{parent_folder}/save.json", 'w') as f:
                         json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
