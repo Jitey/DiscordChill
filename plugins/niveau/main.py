@@ -364,7 +364,7 @@ class Rank(commands.Cog):
         
         if stat.check_lvl():
                 channel = self.bot.get_channel(self.channel['rank'])
-                await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} !")
+                await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} à l'écris!")
 
         res = "UPDATE Rank SET msg=?, xp=?, lvl=? WHERE id==?"
         await self.connection.execute(res, (stat.msg, stat.xp, stat.lvl, stat.id))
