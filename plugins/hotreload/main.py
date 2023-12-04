@@ -56,6 +56,7 @@ class HotReload(commands.Cog):
         Args:
             repository_path (str, optional): Chemin local du répertoire
         """
+        ic('hmm')
         try:
             ic('Coucou')
             repo = git.Repo(repository_path)
@@ -75,6 +76,7 @@ class HotReload(commands.Cog):
         except Exception as e:
             logging.info(e.__class__)
             logging.error(e)
+            print(e)
 
 
                 
