@@ -322,8 +322,8 @@ class Vocal(commands.Cog):
         if member.id == self.bot.user.id:
             return
 
-        req = "INSERT INTO Vocal (id, time, afk, name) VALUES (?,?,?,?)"
-        await self.connection.execute(req, (member.id, 0, 0, member.name))
+        req = "INSERT INTO Vocal (id, name, time, afk, lvl) VALUES (?,?,?,?,?)"
+        await self.connection.execute(req, (member.id, member.name, 0, 0, 0))
         await self.connection.commit()
 
     async def get_member_stats(self, member_id: int)->VocalProfile:

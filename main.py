@@ -50,6 +50,10 @@ class ChillBot(commands.Bot):
         await connection.execute(req)
         await connection.commit()   
         
+        req = "CREATE TABLE IF NOT EXISTS Vocal (id INTEGER PRIMARY KEY, name str, time int, afk int, lvl int, rang int)"
+        await connection.execute(req)
+        await connection.commit()   
+        
     @commands.hybrid_command(name='reload_db')
     async def reload_databse(self, ctx: commands.Context)->None:
         self.connection = await aiosqlite.connect('main.sqlite')
