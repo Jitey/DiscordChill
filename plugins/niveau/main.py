@@ -1,3 +1,4 @@
+from typing import Optional
 import discord
 from discord.ext import commands
 
@@ -195,6 +196,7 @@ class XpProfile:
         image.save(image_byte, format='PNG')
         image_byte.seek(0)
         return discord.File(image_byte, filename=f'{name}.png') 
+
 
 
 
