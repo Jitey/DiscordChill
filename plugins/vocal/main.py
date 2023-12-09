@@ -55,7 +55,7 @@ class VocalProfile:
         next_lvl = self.lvl + 1
         self.xp_needed = 5 * (next_lvl ** 2) + (50 * next_lvl) + 100
 
-        self.current_xp = self.xp - self.xp_to_level(self.lvl)
+        self.current_xp = self.time_spend - self.time_to_level(self.lvl)
 
     
     def check_lvl(self)->bool:
