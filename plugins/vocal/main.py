@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import asyncio
 
 from pathlib import Path
 parent_folder = Path(__file__).resolve().parent
@@ -25,7 +26,7 @@ def round_it(x:float, sig: int)->float:
     Returns:
         int | float: _descNombre arrondiription_
     """
-    return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
+    return x if x == 0 else round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
 
 def format_float(number):
     # Convertir le nombre en chaîne de caractères
@@ -42,11 +43,11 @@ def format_float(number):
 @dataclass
 class VocalProfile:
     id: int
+    name: str
     time_spend: int
     afk: int
-    rang: int
-    name: str
     lvl: int
+    rang: int
     current_xp: int=0
     xp_needed: int=0
 
@@ -162,7 +163,7 @@ class Vocal(commands.Cog):
 
     @commands.hybrid_command(name='vrang')
     async def vrang(self, ctx: commands.Context, member: discord.Member=None)->discord.Message:
-        if not member:
+        if member is None:
             member = ctx.author
 
         await self.update_classement()
@@ -282,6 +283,25 @@ class Vocal(commands.Cog):
         except (AttributeError,KeyError):
             pass
    
+   
+    @commands.Cog.listener(name="on_voice_state_update")
+    async def anti_farm_before(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if after.channel is None: 
+            return
+        
+        asyncio.sleep(60)
+        if len(before.channel.members) == 1:
+            await before.channel.members[0].move_to(None)
+    
+    
+    @commands.Cog.listener(name="on_voice_state_update")
+    async def anti_farm_after(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        if before.channel is None: 
+            return
+        
+        asyncio.sleep(60)
+        if len(after.channel.members) == 1:
+            await after.channel.members[0].move_to(None)
 
 
     async def on_vocal_xp(self, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
