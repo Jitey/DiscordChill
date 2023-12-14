@@ -289,16 +289,20 @@ class Vocal(commands.Cog):
         # Sur une déconection
         if after.channel is None: 
     
-            await asyncio.sleep(30)
+            await asyncio.sleep(60)
             if len(before.channel.members) == 1:
-                await before.channel.members[0].move_to(None)
+                member = before.channel.members[0]
+                await member.move_to(None)
+                await member.send("Tu es resté trop longtemps seul dans un salon. Tu as été déconnecté.")
         
         # Sur une connection
         if before.channel is None: 
             
-            await asyncio.sleep(30)
+            await asyncio.sleep(60)
             if len(after.channel.members) == 1:
-                await after.channel.members[0].move_to(None)
+                member = after.channel.members[0]
+                await member.move_to(None)
+                await member.send("Tu es resté trop longtemps seul dans un salon. Tu as été déconnecté.")
     
 
     async def on_vocal_xp(self, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
