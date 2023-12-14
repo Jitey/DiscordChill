@@ -284,25 +284,22 @@ class Vocal(commands.Cog):
             pass
    
    
-    # @commands.Cog.listener(name="on_voice_state_update")
-    # async def anti_farm_before(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    #     if after.channel is None: 
-    #         return
-        
-    #     asyncio.sleep(60)
-    #     if len(before.channel.members) == 1:
-    #         await before.channel.members[0].move_to(None)
+    @commands.Cog.listener(name="on_voice_state_update")
+    async def anti_farm(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+        # Sur une déconection
+        if after.channel is None: 
     
-    
-    # @commands.Cog.listener(name="on_voice_state_update")
-    # async def anti_farm_after(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    #     if before.channel is None: 
-    #         return
+            await asyncio.sleep(30)
+            if len(before.channel.members) == 1:
+                await before.channel.members[0].move_to(None)
         
-    #     asyncio.sleep(60)
-    #     if len(after.channel.members) == 1:
-    #         await after.channel.members[0].move_to(None)
-
+        # Sur une connection
+        if before.channel is None: 
+            
+            await asyncio.sleep(30)
+            if len(after.channel.members) == 1:
+                await after.channel.members[0].move_to(None)
+    
 
     async def on_vocal_xp(self, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
         """Ajoute de l'xp au membre et regard si il a level up
