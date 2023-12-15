@@ -38,6 +38,58 @@ def format_float(number):
 
 
 
+class ResetView(discord.ui.View):
+    def __init__(self, connection: aiosqlite.Connection, member_target: discord.Member)->None:
+        super().__init__()
+        self.connection = connection
+        self.member_target = member_target
+
+
+    @discord.ui.button(label="Oui", style=discord.ButtonStyle.danger)
+    async def confirmer(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
+        member = interaction.user
+
+        if member.guild_permissions.administrator:
+            res = "UPDATE Vocal SET time=0, afk=0, lvl=0, add_xp_counter=0, remove_xp_counter=0, added_xp=0, removed_xp=0 WHERE id==?"
+            await self.connection.execute(res, (self.member_target.id,))
+            await self.connection.commit()
+            
+            await self.update_classement()
+            await self.disable_all_buttons(interaction)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message("Tu n'as pas la permission pour ça", ephemeral=True)
+
+
+    @discord.ui.button(label="Non", style=discord.ButtonStyle.danger)
+    async def annuler(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
+        member = interaction.user
+
+        if member.guild_permissions.administrator:
+            await self.disable_all_buttons(interaction)
+            await interaction.response.defer()
+        else:
+            await interaction.response.send_message("Tu n'as pas la permission pour ça", ephemeral=True)
+
+
+    async def disable_all_buttons(self, interaction: discord.Interaction)->None:
+        for child in self.children:
+            if type(child) == discord.ui.Button:
+                child.disabled = True
+        
+        await interaction.message.edit(view=self)
+        
+        
+    async def update_classement(self):
+        """Range par odre décroissant d'xp les membrs dans a bdd
+        """
+        req = "UPDATE Vocal SET rang=DENSE_RANK() OVER (ORDER BY Vocal.time DESC) FROM Vocal t2 WHERE t2.id = Vocal.id"
+        await self.connection.execute(req)
+        await self.connection.commit()
+
+
+
+
 
 
 @dataclass
@@ -84,9 +136,15 @@ class VocalProfile:
         """
         return sum(5 * (i ** 2) + (50 * i) + 100 for i in range(lvl_target))
 
-    def print_tps(self, xp: int)->str:
-        rounded_tps = round_it(xp, 3)
-        return rounded_tps if rounded_tps < 1e3 else f"{format_float(rounded_tps/1e3)}K"
+    def print_tps(self, min: int)->str:
+        if min < 60:
+            return f"{min}min"
+        
+        elif min % 60 == 0:
+            return f"{min}h"
+        
+        else:
+            return f"{min//60}h{min%60}min"
     
     def create_progress_bar(self, color: int | tuple=0x000000):
         if isinstance(color, int):
@@ -159,6 +217,49 @@ class Vocal(commands.Cog):
     async def init_vocal(self):
         self.afk_channel = self.bot.get_channel(self.channels['afk'])
 
+
+
+
+    @commands.hybrid_command(name='add_time')
+    async def add_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+        member = ctx.author
+
+        if member.guild_permissions.administrator:
+            await self.manage_xp('add', member_target.id, amout)
+            embed = discord.Embed(
+                title="Ajout de temps",
+                description=f"{amout}min ajouté à {member_target.display_name}",
+                color=discord.Color.random()
+            )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+
+    
+    @commands.hybrid_command(name='remove_time')
+    async def remove_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+        member = ctx.author
+
+        if member.guild_permissions.administrator:
+            await self.manage_xp('remove', member_target.id, amout)
+            embed = discord.Embed(
+                title="Retrait de temps",
+                description=f"{amout}min retiré à {member_target.display_name}",
+                color=discord.Color.random()
+            )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+
+    
+    @commands.hybrid_command(name='reset_time')
+    async def reset_time(self, ctx: commands.Context, member_target: discord.Member)->discord.Message:
+        member = ctx.author
+
+        if member.guild_permissions.administrator:
+            await ctx.send("Tu es sûr de vouloir faire ça ?", view=ResetView(self.connection,member_target))
+        else:
+            await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
 
 
     @commands.hybrid_command(name='vrang')
@@ -305,6 +406,33 @@ class Vocal(commands.Cog):
                 await member.send("Tu es resté trop longtemps seul dans un salon. Tu as été déconnecté.")
     
 
+
+    async def manage_xp(self, action: str, member_id: int, amount: int):
+        """Ajoute ou retire la quantité d'xp donné
+
+        Args:
+            action (str): Ajouter ou retirer de l'xp
+            member_id (int): Id du membre
+            amount (int): Quantité d'xp
+        """
+        stat = self.get_member_stats(member_id)
+        
+        if action == 'add':
+            stat.time_spend += amount
+            xp_counter = stat.add_xp_counter + 1
+            res = "UPDATE Rank SET time=?, afk=?, lvl=?, add_xp_counteer=?, added_xp=? WHERE id==?"
+        elif action == 'remove':
+            stat.xp -= amount
+            xp_counter = stat.remove_xp_counter + 1
+            res = "UPDATE Rank SET time=?, afk=?, lvl=?, remove_xp_counteer=?, removeed_xp=? WHERE id==?"
+            
+        stat.check_lvl()
+
+        await self.connection.execute(res, (stat.time_spend, stat.afk, stat.lvl, xp_counter, amount, stat.id))
+        await self.connection.commit()
+
+        await self.update_classement()
+    
     async def on_vocal_xp(self, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
         """Ajoute de l'xp au membre et regard si il a level up
 

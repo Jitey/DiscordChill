@@ -46,17 +46,20 @@ class ChillBot(commands.Bot):
     
     
     async def create_table(self, connection: aiosqlite.Connection)->None:
-        req = "CREATE TABLE IF NOT EXISTS Rank (id INTEGER PRIMARY KEY, name str, msg int, xp int, lvl int, rang int)"
+        req = "CREATE TABLE IF NOT EXISTS Rank (id INTEGER PRIMARY KEY, name str, msg int, xp int, lvl int, rang int, add_xp_counter int, remove_xp_counter int, added_xp int, removed_xp int)"
         await connection.execute(req)
         await connection.commit()   
         
-        req = "CREATE TABLE IF NOT EXISTS Vocal (id INTEGER PRIMARY KEY, name str, time int, afk int, lvl int, rang int)"
+        req = "CREATE TABLE IF NOT EXISTS Vocal (id INTEGER PRIMARY KEY, name str, time int, afk int, lvl int, rang int, add_xp_counter int, remove_xp_counter int, added_xp int, removed_xp int)"
         await connection.execute(req)
         await connection.commit()   
         
     @commands.hybrid_command(name='reload_db')
     async def reload_databse(self, ctx: commands.Context)->None:
-        self.connection = await aiosqlite.connect('main.sqlite')
+        if ctx.author.guild_permissions.administrator:
+            self.connection = await aiosqlite.connect('main.sqlite')
+        else:
+            ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
 
 
 

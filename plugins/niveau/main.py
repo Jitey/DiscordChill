@@ -52,7 +52,7 @@ class ResetView(discord.ui.View):
         member = interaction.user
 
         if member.guild_permissions.administrator:
-            res = "UPDATE Rank SET msg=0, xp=0, lvl=0 WHERE id==?"
+            res = "UPDATE Rank SET msg=0, xp=0, lvl=0, add_xp_counter=0, remove_xp_counter=0, added_xp=0, removed_xp=0 WHERE id==?"
             await self.connection.execute(res, (self.member_target.id,))
             await self.connection.commit()
             
@@ -334,7 +334,7 @@ class Rank(commands.Cog):
             member_id (int): Id du membre
             amount (int): Quantité d'xp
         """
-        stat = self.get_all_member_stats(member_id)
+        stat = self.get_member_stats(member_id)
         
         if action == 'add':
             stat.xp += amount
