@@ -19,10 +19,24 @@ class RegisterView(discord.ui.View):
         self.ytb = ytb
         self.name = name
         
+        
     @discord.ui.button(label="Enregistrer", emoji="💾")
     async def premade_button(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
         await interaction.response.send_modal(RegisterModal(self.ytb,self.name))
     
+    
+    @discord.ui.button(label="Annuler", emoji="❌")
+    async def premade_button(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
+        await self.desable_all_buttons(interaction)
+        await interaction.response.defer()
+    
+    
+    async def desable_all_buttons(self, interaction: discord.Interaction)->None:
+        for child in self.children:
+            if type(child) == discord.ui.Button:
+                child.disabled = True
+        
+        await interaction.message.edit(view=self)
     
     
 
@@ -70,7 +84,7 @@ class YouTube(commands.Cog):
             description=f"Le nom d'affichage de la chaîne sera **{name}**",
             color=discord.Color.random()
         )
-        embed.add_field(name="Format", value="Dans le formulaire il faut rentrer l'url de la chaîne'")
+        embed.add_field(name="Format", value="Dans le formulaire il faut rentrer l'url de la chaîne")
 
         await ctx.send(embed=embed, view=RegisterView(self,name))
     
