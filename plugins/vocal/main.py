@@ -100,6 +100,10 @@ class VocalProfile:
     afk: int
     lvl: int
     rang: int
+    add_xp_counter: int
+    remove_xp_counter: int
+    added_xp: int
+    removed_xp: int
     current_xp: int=0
     xp_needed: int=0
 
