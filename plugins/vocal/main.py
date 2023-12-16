@@ -285,13 +285,12 @@ class Vocal(commands.Cog):
             embed.set_thumbnail(url=member.avatar.url)
             embed.add_field(name="",value=f"{member.display_name}", inline=True)
             embed.add_field(name="", value="", inline=True)
-            embed.add_field(name="", value=f"{stat.print_tps(stat.current_xp)} / {stat.print_tps(stat.xp_needed)} min", inline=True)
+            embed.add_field(name="", value=f"{stat.print_tps(stat.current_xp)} / {stat.print_tps(stat.xp_needed)}", inline=True)
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url)
 
             progress_bar = stat.create_progress_bar(int(color))
             embed.set_image(url="attachment://progress_bar.png")
             await ctx.send(embed=embed, file=progress_bar)
-            # await ctx.send(embed=embed)
 
         else:
             await ctx.send("Tu ne t'es jamais connecté en vocal")
