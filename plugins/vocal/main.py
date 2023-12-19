@@ -12,6 +12,7 @@ import time
 import math
 from PIL import Image, ImageDraw
 from io import BytesIO
+from datetime import datetime as dt, timedelta
 
 from icecream import ic
 
@@ -140,15 +141,16 @@ class VocalProfile:
         """
         return sum(5 * (i ** 2) + (50 * i) + 100 for i in range(lvl_target))
 
-    def print_tps(self, min: int)->str:
-        if min < 60:
-            return f"{min}min"
+    def print_tps(self, time_spend: int) -> str:
+        if time_spend < 60:
+            return f"{time_spend}min"
+            
+        tps = dt.min + timedelta(minutes=time_spend)
+        tps_sliced =  {'j ': tps.day - 1, 'h': tps.hour, '': tps.minute}
+        return "".join(
+            f"{value}{title}" for title, value in tps_sliced.items() if value != 0
+        )
         
-        elif min % 60 == 0:
-            return f"{min}h"
-        
-        else:
-            return f"{min//60}h{min%60}min"
     
     def create_progress_bar(self, color: int | tuple=0x000000):
         if isinstance(color, int):
@@ -214,7 +216,6 @@ class Vocal(commands.Cog):
         self.channels = self.load_json('channels')
         self.own_channels = {}
         self.voice_time_counter = {}
-        self.afk_time_counter = {}
         
     
     @commands.Cog.listener(name="on_ready")
@@ -356,11 +357,7 @@ class Vocal(commands.Cog):
     async def on_vocale_join(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
         try:
             if not before.channel or before.channel.id == self.afk_channel.id:
-                if after.channel.id != self.afk_channel.id:
-                    self.voice_time_counter[member.id] = time.perf_counter()
-
-                else:
-                    self.afk_time_counter[member.id] = time.perf_counter()
+                self.voice_time_counter[member.id] = time.perf_counter()
         
         except AttributeError:
             pass    
@@ -370,16 +367,12 @@ class Vocal(commands.Cog):
     async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
         try:
             if not after.channel or after.channel.id == self.afk_channel.id:
-                if before.channel.id != self.afk_channel.id:
-                    time_spend = int(time.perf_counter() - self.voice_time_counter[member.id])
-                    afk = 0
-
-                else:
-                    time_spend = 0
-                    afk = int(time.perf_counter() - self.afk_time_counter[member.id])
+                tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
+                if before.channel.id == self.afk_channel.id:
+                    tps.reverse()
 
                 if profile := await self.get_member_stats(member.id):
-                    await self.on_vocal_xp(profile, time_spend, afk)
+                    await self.on_vocal_xp(profile, *tps)
                 else:
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
@@ -394,7 +387,7 @@ class Vocal(commands.Cog):
         if after.channel is None: 
     
             await asyncio.sleep(60)
-            if len(before.channel.members) == 1:
+            if before.channel and len(before.channel.members) == 1:
                 member = before.channel.members[0]
                 await member.move_to(None)
                 await member.send("Tu es resté trop longtemps seul dans un salon. Tu as été déconnecté.")
@@ -441,19 +434,21 @@ class Vocal(commands.Cog):
 
         Args:
             stat (tuple | XpProfile): Stats du membre
+            time_spend (int): Temps en seconde
+            afk (int): Temps d'afk en seconde
         """
         if isinstance(stat, tuple):
             stat = VocalProfile(*stat)
         
-        stat.time_spend += time_spend
+        stat.time_spend += time_spend // 60
         stat.afk += afk
-        req = "UPDATE Vocal SET time=?, afk=? WHERE id==?"
+        req = "UPDATE Vocal SET time=?, afk=?, lvl=? WHERE id==?"
         
         if stat.check_lvl():
             channel = self.bot.get_channel(self.channel['rank'])
             await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
         
-        await self.connection.execute(req, (stat.time_spend, afk, stat.id))
+        await self.connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))
         await self.connection.commit()
 
         await self.update_classement()
