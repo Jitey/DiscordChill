@@ -201,10 +201,11 @@ class Bienvenue(commands.Cog):
         # Image de fond
         if banner := user.banner:
             # Bannière nitro si existante
-            background = self.get_image_from_url(banner.url).resize((1000,460))
+            background = self.get_image_from_url(banner.url)
         else:
             # Sinon le fond default
-            background = Image.open(f"{parent_folder}/image/background.gif").resize((1100,500)).convert('RGBA')
+            background = Image.open(f"{parent_folder}/image/background.gif")
+        background.resize((1100,500)).convert('RGBA')
             
         # Dessine une bordure blanche autour de l'avatar
         border = ImageDraw.Draw(background)                                                      
