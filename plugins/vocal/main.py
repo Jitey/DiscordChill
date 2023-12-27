@@ -124,10 +124,15 @@ class VocalProfile:
         """
         current_lvl = self.lvl
         
-        if self.current_xp > self.xp_needed:
+        ic(self.current_xp , self.xp_needed)
+        ic(self.current_xp >= self.xp_needed)
+        if self.current_xp >= self.xp_needed:
             self.lvl += 1
             self.__post_init__()
-
+        elif self.current_xp < self.xp_needed:
+            self.lvl -= 1
+            self.__post_init__()
+        ic(self.lvl , current_lvl)
         return self.lvl > current_lvl
 
     def time_to_level(self, lvl_target: int)->int:
@@ -396,10 +401,10 @@ class Vocal(commands.Cog):
         if before.channel is None: 
             
             await asyncio.sleep(60)
-            if len(after.channel.members) == 1:
+            if after.channel and len(after.channel.members) == 1:
                 member = after.channel.members[0]
                 await member.move_to(None)
-                await member.send("Tu es resté trop longtemps seul dans un salon. Tu as été déconnecté.")
+                await member.send("Il n'y a plus personne avec toi dans le salon. Tu as été déconnecté")
     
 
 
@@ -411,16 +416,16 @@ class Vocal(commands.Cog):
             member_id (int): Id du membre
             amount (int): Quantité d'xp
         """
-        stat = self.get_member_stats(member_id)
+        stat = VocalProfile(*await self.get_member_stats(member_id))
         
         if action == 'add':
             stat.time_spend += amount
             xp_counter = stat.add_xp_counter + 1
-            res = "UPDATE Rank SET time=?, afk=?, lvl=?, add_xp_counteer=?, added_xp=? WHERE id==?"
+            res = "UPDATE Vocal SET time=?, afk=?, lvl=?, add_xp_counteer=?, added_xp=? WHERE id==?"
         elif action == 'remove':
-            stat.xp -= amount
+            stat.time_spend -= amount
             xp_counter = stat.remove_xp_counter + 1
-            res = "UPDATE Rank SET time=?, afk=?, lvl=?, remove_xp_counteer=?, removeed_xp=? WHERE id==?"
+            res = "UPDATE Vocal SET time=?, afk=?, lvl=?, remove_xp_counteer=?, removeed_xp=? WHERE id==?"
             
         stat.check_lvl()
 
@@ -445,7 +450,7 @@ class Vocal(commands.Cog):
         req = "UPDATE Vocal SET time=?, afk=?, lvl=? WHERE id==?"
         
         if stat.check_lvl():
-            channel = self.bot.get_channel(self.channel['rank'])
+            channel = self.bot.get_channel(self.channels['rank'])
             await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
         
         await self.connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))

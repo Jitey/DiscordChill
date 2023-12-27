@@ -30,7 +30,7 @@ class Bienvenue(commands.Cog):
         #|----------Message de bienvenue----------|
         if not member.bot:
             embed = discord.Embed(
-                title=f"Bienvenue {member.display_name} !",
+                title=f"Bienvenue {member.mention} !",
                 description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
                 color=discord.Color.blurple()
             )

@@ -123,7 +123,7 @@ class XpProfile:
         """
         current_lvl = self.lvl
         
-        if self.current_xp > self.xp_needed:
+        if self.current_xp >= self.xp_needed:
             self.lvl += 1
             self.__post_init__()
 
@@ -206,7 +206,7 @@ class Rank(commands.Cog):
         self.bot = bot
         self.connection = connection
         self.last_message_time = {}
-        self.channel = self.load_json('channels')
+        self.channels = self.load_json('channels')
 
 
     
@@ -334,7 +334,7 @@ class Rank(commands.Cog):
             member_id (int): Id du membre
             amount (int): Quantité d'xp
         """
-        stat = self.get_member_stats(member_id)
+        stat = XpProfile(*await self.get_member_stats(member_id))
         
         if action == 'add':
             stat.xp += amount
@@ -365,7 +365,7 @@ class Rank(commands.Cog):
         stat.xp += rd.randint(15,25 + 1)
         
         if stat.check_lvl():
-                channel = self.bot.get_channel(self.channel['rank'])
+                channel = self.bot.get_channel(self.channels['rank'])
                 await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} à l'écris!")
 
         res = "UPDATE Rank SET msg=?, xp=?, lvl=? WHERE id==?"
