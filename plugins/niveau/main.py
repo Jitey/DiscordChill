@@ -125,8 +125,8 @@ class XpProfile:
         
         if self.current_xp >= self.xp_needed:
             self.lvl += 1
-            self.__post_init__()
 
+        self.__post_init__()
         return self.lvl > current_lvl
 
     def xp_to_level(self, lvl_target: int)->int:
@@ -307,7 +307,7 @@ class Rank(commands.Cog):
         current_time = dt.now()
 
         # Ignore les messages du bot et dans les channels choisit
-        if member.bot or message.channel.id in self.channel['ignore'].values():
+        if member.bot or message.channel.id in self.channels['ignore'].values():
             return
     
         # Cooldown

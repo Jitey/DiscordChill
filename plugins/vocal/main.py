@@ -124,15 +124,10 @@ class VocalProfile:
         """
         current_lvl = self.lvl
         
-        ic(self.current_xp , self.xp_needed)
-        ic(self.current_xp >= self.xp_needed)
         if self.current_xp >= self.xp_needed:
             self.lvl += 1
-            self.__post_init__()
-        elif self.current_xp < self.xp_needed:
-            self.lvl -= 1
-            self.__post_init__()
-        ic(self.lvl , current_lvl)
+
+        self.__post_init__()
         return self.lvl > current_lvl
 
     def time_to_level(self, lvl_target: int)->int:
