@@ -443,6 +443,7 @@ class Vocal(commands.Cog):
             # Si le membre viensde se déconnecter
             if not after.channel or after.channel.id == self.afk_channel.id:
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
+                self.voice_time_counter[member.id] = None
                 if before.channel.id == self.afk_channel.id:
                     tps.reverse()
 
