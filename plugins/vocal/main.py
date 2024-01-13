@@ -109,7 +109,10 @@ class VocalProfile:
     xp_needed: int=0
 
     
-    def __post_init__(self):
+    def __post_init__(self)->None:
+        """Calcule l'xp requit et l'xp avant le prochain lvl
+        après l'initialisation de l'instance
+        """
         next_lvl = self.lvl + 1
         self.xp_needed = 5 * (next_lvl ** 2) + (50 * next_lvl) + 100
 
@@ -152,7 +155,7 @@ class VocalProfile:
         )
         
     
-    def create_progress_bar(self, color: int | tuple=0x000000):
+    def create_progress_bar(self, color: int | tuple=0x000000)->discord.File:
         if isinstance(color, int):
             color = self.color_hexa_to_rgb(color)
             
@@ -203,6 +206,7 @@ class VocalProfile:
         image_byte = BytesIO()
         image.save(image_byte, format='PNG')
         image_byte.seek(0)
+        
         return discord.File(image_byte, filename=f'{name}.png') 
 
 
@@ -220,13 +224,24 @@ class Vocal(commands.Cog):
     
     @commands.Cog.listener(name="on_ready")
     async def init_vocal(self):
+        """Comme un __post_init__ mais sur l'event on_ready"""
         self.afk_channel = self.bot.get_channel(self.channels['afk'])
 
 
 
 
     @commands.hybrid_command(name='add_time')
-    async def add_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+    async def add_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->bool:
+        """Ajoute de l'xp à un membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member_target (discord.Member): Membre target
+            amout (int): Quantité
+
+        Returns:
+            bool: L'opération a échoué ou non
+        """
         member = ctx.author
 
         if member.guild_permissions.administrator:
@@ -239,10 +254,22 @@ class Vocal(commands.Cog):
             await ctx.send(embed=embed)
         else:
             await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+        
+        return member.guild_permissions.administrator
 
     
     @commands.hybrid_command(name='remove_time')
-    async def remove_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+    async def remove_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->bool:
+        """Retire de l'xp à un membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member_target (discord.Member): Membre target
+            amout (int): Quantité
+
+        Returns:
+            bool: L'opération a échoué ou non
+        """
         member = ctx.author
 
         if member.guild_permissions.administrator:
@@ -256,19 +283,41 @@ class Vocal(commands.Cog):
         else:
             await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
 
+        return member.guild_permissions.administrator
+
     
     @commands.hybrid_command(name='reset_time')
-    async def reset_time(self, ctx: commands.Context, member_target: discord.Member)->discord.Message:
+    async def reset_time(self, ctx: commands.Context, member_target: discord.Member)->bool:
+        """Remet à 0 l'xp du membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member_target (discord.Member): Membre target
+
+        Returns:
+            bool: L'opération a échoué ou non
+        """
         member = ctx.author
 
         if member.guild_permissions.administrator:
             await ctx.send("Tu es sûr de vouloir faire ça ?", view=ResetView(self.connection,member_target))
         else:
             await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+        
+        return member.guild_permissions.administrator
 
 
     @commands.hybrid_command(name='vrang')
-    async def vrang(self, ctx: commands.Context, member: discord.Member=None)->discord.Message:
+    async def vrang(self, ctx: commands.Context, member: discord.Member=None)->None:
+        """Affiche les infos relative au membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member (discord.Member, optional): Membre target. Defaults to Auteur de la commande.
+
+        Returns:
+            discord.Message: _description_
+        """
         if member is None:
             member = ctx.author
 
@@ -299,6 +348,14 @@ class Vocal(commands.Cog):
 
     @commands.hybrid_command(name='vleaderboard')
     async def leaderboard(self, ctx: commands.Context)->discord.Message:
+        """Affiche les 5 premiers membres du classement
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+
+        Returns:
+            discord.Message: Message du leaderboard
+        """
         embed = discord.Embed(
             title="Leaderboard",
             color=discord.Color.random()
@@ -355,9 +412,19 @@ class Vocal(commands.Cog):
    
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_join(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+        """Marque le début de la connection vocal
+
+        Args:
+            member (discord.Member): Memnre
+            before (discord.VoiceState): État vocal avant la connexion
+            after (discord.VoiceState): État vocal après la connexion
+        """
         try:
+            # Si le membre viens de se connecter
             if not before.channel or before.channel.id == self.afk_channel.id:
-                self.voice_time_counter[member.id] = time.perf_counter()
+                # Si il n'est pas seul dans le channel
+                if len(after.channel) >= 2:
+                    self.voice_time_counter[member.id] = time.perf_counter()
         
         except AttributeError:
             pass    
@@ -365,7 +432,15 @@ class Vocal(commands.Cog):
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+        """Compte le temps passé en vocal
+
+        Args:
+            member (discord.Member): Memnre
+            before (discord.VoiceState): État vocal avant la connexion
+            after (discord.VoiceState): État vocal après la connexion
+        """
         try:
+            # Si le membre viensde se déconnecter
             if not after.channel or after.channel.id == self.afk_channel.id:
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
                 if before.channel.id == self.afk_channel.id:
@@ -377,33 +452,40 @@ class Vocal(commands.Cog):
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
                        
-        except (AttributeError,KeyError):
+        except (AttributeError, KeyError, TypeError):
             pass
    
    
     @commands.Cog.listener(name="on_voice_state_update")
-    async def anti_farm(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    async def anti_farm(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+        """Annule la prise en compte du temps pour quelqu'un qui reste seul dans un channel
+
+        Args:
+            member (discord.Member): Membre
+            before (discord.VoiceState): État vocal avant la connexion
+            after (discord.VoiceState): État vocal après la connexion
+        """
         # Sur une déconection
         if after.channel is None: 
     
-            await asyncio.sleep(60)
+            # Si le channel existe toujours et qu'il reste quelqu'un seul membre
             if before.channel and len(before.channel.members) == 1:
-                member = before.channel.members[0]
-                await member.move_to(None)
-                await member.send("Tu es resté trop longtemps seul dans un salon. Tu as été déconnecté.")
+                last_member = before.channel.members[0]
+                self.voice_time_counter[last_member.id] = None
         
         # Sur une connection
         if before.channel is None: 
             
-            await asyncio.sleep(60)
-            if after.channel and len(after.channel.members) == 1:
-                member = after.channel.members[0]
-                await member.move_to(None)
-                await member.send("Il n'y a plus personne avec toi dans le salon. Tu as été déconnecté")
+            # Si une deuxieme personne se connecte
+            if after.channel and len(after.channel.members) == 2:
+                for participant in after.channel.members:
+                    first_member = participant if participant != member else None
+
+                self.voice_time_counter[first_member.id] = time.perf_counter()
     
 
 
-    async def manage_xp(self, action: str, member_id: int, amount: int):
+    async def manage_xp(self, action: str, member_id: int, amount: int)->None:
         """Ajoute ou retire la quantité d'xp donné
 
         Args:
@@ -453,7 +535,7 @@ class Vocal(commands.Cog):
 
         await self.update_classement()
     
-    async def update_classement(self):
+    async def update_classement(self)->None:
         """Range par odre décroissant de temps passé en vocal les membrs dans la bdd
         """
         req = "UPDATE Vocal SET rang=DENSE_RANK() OVER (ORDER BY Vocal.time DESC) FROM Vocal t2 WHERE t2.id = Vocal.id"

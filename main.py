@@ -1,3 +1,5 @@
+# Python 3.11
+
 # |----------Module d'environnement-----------|
 from os import getenv
 from dotenv import load_dotenv
