@@ -423,7 +423,7 @@ class Vocal(commands.Cog):
             # Si le membre viens de se connecter
             if not before.channel or before.channel.id == self.afk_channel.id:
                 # Si il n'est pas seul dans le channel
-                if len(after.channel) >= 2:
+                if len(after.channel.members) >= 2:
                     self.voice_time_counter[member.id] = time.perf_counter()
         
         except AttributeError:
