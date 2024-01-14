@@ -472,7 +472,7 @@ class Vocal(commands.Cog):
             # Si le channel existe toujours et qu'il reste quelqu'un seul membre
             if before.channel and len(before.channel.members) == 1:
                 last_member = before.channel.members[0]
-                self.voice_time_counter[last_member.id] = None
+                await self.on_vocale_leave(last_member, before, after)
         
         # Sur une connection
         if before.channel is None: 
