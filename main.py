@@ -42,7 +42,7 @@ class ChillBot(commands.Bot):
     
     async def on_ready(self) -> None:
         activity = discord.CustomActivity("En train de chill")
-        await self.change_presence(status=discord.Status.online, activity=activity)
+        await self.change_presence(status=discord.Status.offline, activity=activity)
         
         print(f'Connecté en tant que {self.user.name}')
     
