@@ -384,8 +384,7 @@ class Vocal(commands.Cog):
         try:
             if after.channel.id == self.channels['main_salon']:
                 uzox = self.bot.get_user(760027263046909992)
-                perms = discord.permissions
-                ic(perms)
+                perms = discord.PermissionOverwrite()
 
                 channel = await serveur.create_voice_channel(member.display_name,category=category, overwrites={uzox: perms})
                 self.own_channels[channel.id] = channel
@@ -474,7 +473,7 @@ class Vocal(commands.Cog):
         if after.channel is None: 
     
             # Si le channel existe toujours et qu'il reste quelqu'un seul membre
-            if before.channel and len(before.channel.members) == 1:
+            if before.channel and self.is_voice_channel_empty(before.channel):
                 last_member = before.channel.members[0]
                 await self.on_vocale_leave(last_member, before, after)
         
@@ -482,12 +481,28 @@ class Vocal(commands.Cog):
         if before.channel is None: 
             
             # Si une deuxieme personne se connecte
-            if after.channel and len(after.channel.members) == 2:
+            if after.channel and self.is_voice_channel_empty(after.channel):
                 for participant in after.channel.members:
-                    first_member = participant if participant != member else None
+                    if participant != member:
+                        first_member = participant
+                        break
 
                 self.voice_time_counter[first_member.id] = time.perf_counter()
     
+    
+    async def is_voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
+        """Check si le salon est ne contient qu'un seul membre non bot
+
+        Args:
+            channel (_type_): Salon vocal
+
+        Returns:
+            bool: Résultat sous forme de boléen
+        """
+        res = sum(bool(participant.bot) for participant in channel.members)
+        return res > 1
+
+            
 
 
     async def manage_xp(self, action: str, member_id: int, amount: int)->None:
