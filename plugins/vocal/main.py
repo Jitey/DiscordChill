@@ -383,7 +383,11 @@ class Vocal(commands.Cog):
         category = discord.utils.get(serveur.categories, id=self.channels['gaming_category'])
         try:
             if after.channel.id == self.channels['main_salon']:
-                channel = await serveur.create_voice_channel(member.display_name,category=category)
+                uzox = self.bot.get_user(760027263046909992)
+                perms = discord.permissions
+                ic(perms)
+
+                channel = await serveur.create_voice_channel(member.display_name,category=category, overwrites={uzox: perms})
                 self.own_channels[channel.id] = channel
                 await member.move_to(self.own_channels[channel.id])
             

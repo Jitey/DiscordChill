@@ -20,7 +20,7 @@ IGNORE_EXTENSIONS = ['ping']
 
 async def load_all_extensions(bot: commands.Bot):
     for plugin in glob.glob(f"{parent_folder}/plugins/**"):
-        extention = plugin.split('/')[-1]
+        extention = plugin.split('\\')[-1]
         if extention not in IGNORE_EXTENSIONS:
             await bot.load_extension(f"plugins.{extention}.main")
         
