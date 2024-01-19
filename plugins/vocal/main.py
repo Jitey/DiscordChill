@@ -220,6 +220,7 @@ class Vocal(commands.Cog):
         self.channels = self.load_json('channels')
         self.own_channels = {}
         self.voice_time_counter = {}
+        self.afk_channel = discord.VoiceChannel
         
     
     @commands.Cog.listener(name="on_ready")
@@ -446,16 +447,17 @@ class Vocal(commands.Cog):
             # Si le membre viensde se déconnecter
             if not after.channel or after.channel.id == self.afk_channel.id:
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
-                self.voice_time_counter[member.id] = None
                 if before.channel.id == self.afk_channel.id:
                     tps.reverse()
 
                 if profile := await self.get_member_stats(member.id):
                     await self.on_vocal_xp(profile, *tps)
+                    self.voice_time_counter[member.id] = None
                 else:
+                    ic('else')
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
-                       
+
         except (AttributeError, KeyError, TypeError):
             pass
    
@@ -472,7 +474,7 @@ class Vocal(commands.Cog):
         # Sur une déconection
         if after.channel is None: 
     
-            # Si le channel existe toujours et qu'il reste quelqu'un seul membre
+            # Si le channel existe toujours et qu'il reste quelqu'un seul membre humain
             if before.channel and self.is_voice_channel_empty(before.channel):
                 last_member = before.channel.members[0]
                 await self.on_vocale_leave(last_member, before, after)
@@ -480,18 +482,20 @@ class Vocal(commands.Cog):
         # Sur une connection
         if before.channel is None: 
             
-            # Si une deuxieme personne se connecte
-            if after.channel and self.is_voice_channel_empty(after.channel):
+            # Si un deuxieme humain se connecte
+            if after.channel and self.is_voice_channel_enought_fill(after.channel):
                 for participant in after.channel.members:
                     if participant != member:
                         first_member = participant
                         break
 
                 self.voice_time_counter[first_member.id] = time.perf_counter()
+        
+        ic(self.voice_time_counter)
     
     
-    async def is_voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
-        """Check si le salon est ne contient qu'un seul membre non bot
+    def is_voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
+        """Check si le salon ne contient qu'un seul membre non bot
 
         Args:
             channel (_type_): Salon vocal
@@ -499,7 +503,19 @@ class Vocal(commands.Cog):
         Returns:
             bool: Résultat sous forme de boléen
         """
-        res = sum(bool(participant.bot) for participant in channel.members)
+        res = sum(int(not participant.bot) for participant in channel.members)
+        return res == 1
+        
+    def is_voice_channel_enought_fill(self, channel: discord.VoiceChannel) -> bool:
+        """Check si le salon ne contient plus d'un seul membre non bot
+
+        Args:
+            channel (_type_): Salon vocal
+
+        Returns:
+            bool: Résultat sous forme de boléen
+        """
+        res = sum(int(not participant.bot) for participant in channel.members)
         return res > 1
 
             
