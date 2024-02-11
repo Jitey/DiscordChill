@@ -83,15 +83,15 @@ class AutoRole(commands.Cog):
         return await ctx.send(embed=embed,view=view)
 
 
-    @commands.Cog.listener(name='on_message')
-    async def role_moderation(self, message: discord.Message)->None:
-        member = message.author
-        channel = self.bot.get_channel(720974238499995658)
+    # @commands.Cog.listener(name='on_message')
+    # async def role_moderation(self, message: discord.Message)->None:
+    #     member = message.author
+    #     channel = self.bot.get_channel(720974238499995658)
 
-        if message.channel.id == channel.id and member != self.bot.user and message.content != '/role':
-            msg = await message.reply("Tu ne peux pas écrire ça ici. Utilise plutot `/role`")
-            await message.delete()
-            return await msg.delete(delay=5)
+    #     if message.channel.id == channel.id and member != self.bot.user and message.content != '/role':
+    #         msg = await message.reply("Tu ne peux pas écrire ça ici. Utilise plutot `/role`")
+    #         await message.delete()
+    #         return await msg.delete(delay=5)
 
     
 

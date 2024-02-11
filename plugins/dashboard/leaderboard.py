@@ -85,18 +85,13 @@ def rank_image(data: pd.DataFrame) -> list:
     return img
 
 def init_streamlit_page() -> None:
-    # st.set_page_config(layout="wide",
-    #                    page_title="Leaderboard",
-    #                    page_icon="📊"
-    #                    )
+    st.set_page_config(layout="wide",
+                       page_title="Leaderboard",
+                       page_icon="📊"
+                       )
     st.title('Leaderboard') 
     st.header('Salons textuels') 
     st.sidebar.success("Classement à afficher")
-    # with st.container():
-        # st.markdown("""<style> 
-        #                 body{bakgroun-color=#F792E5;}
-        #                 </style>
-        #             """, unsafe_allow_html=True)
 
 def top_border():
     with st.container():
@@ -143,8 +138,6 @@ def top_border():
 
 def leaderboard(data: pd.DataFrame) -> None:
     img = rank_image(data)
-    st.write(data)
-    st.write(img)
     # Pour chaque joueur dans le leaderboard
     for index , row in data.iterrows():
         # Conteneur avec les infos du joueur
@@ -155,7 +148,8 @@ def leaderboard(data: pd.DataFrame) -> None:
                         <div style="width:83%; display: flex;">
                             <div style="width:1%;"> </div>
                             <div style="width:3%;"> {img[index]} </div>
-                            <div style="width:80%;"> <h4> {row["name"]} </h4> </div> 
+                            <div style="width:12%;"> <img src='{row['avatar']}'> </div>
+                            <div> <h4> {row["name"]} </h4> </div> 
                         </div>
                         <div style="width:17%; display: flex;">
                             <div style="width:33%;"> <h4> {pretty_print(row["msg"])} </h4> </div>
@@ -168,17 +162,11 @@ def leaderboard(data: pd.DataFrame) -> None:
 
 
 def main():
-    with connect(f"{parent_folder.parent.parent}/main.sqlite") as connection:
-        req = "SELECT * FROM Rank ORDER BY rang"
-        leaderboard_data = pd.read_sql(req, connection)
-        curseur = connection.cursor()
-        curseur.execute(req)
-        res = curseur.fetchall()
-        ic(res)
+    # with connect(f"{parent_folder.parent.parent}/main.sqlite") as connection:
+    leaderboard_data = pd.read_csv(f"{parent_folder}/data/Rank.csv")
 
     init_streamlit_page()
     top_border()
-    st.write(leaderboard_data)
     leaderboard(leaderboard_data)
 
 

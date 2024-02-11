@@ -5,8 +5,10 @@ from pathlib import Path
 parent_folder = Path(__file__).resolve().parent
 import math
 import aiosqlite
+import pandas as pd
 import subprocess
 
+from icecream import ic
 
 
 # |----------Anexes----------|
@@ -86,20 +88,41 @@ class Dashboard(commands.Cog):
         Returns:
             discord.Message: Message
         """
+        await self.write_data('Rank')
+        await self.write_data('Vocal')
         subprocess.run(['streamlit', 'run', f'{parent_folder}/leaderboard.py'])
         membre = ctx.author
 
-        await self.init_streamlit_page()
-        self.leaderboard(await self.load_data_from_sql())
-
         embed = discord.Embed(
-            title=f"Leaderboard {self.leaderboard_version[type].lower()}",
+            title=f"Leaderboard",
             description="Accède au classement [ici](https://discordchill-test.streamlit.app/)",
             color=discord.Color.blurple()
         )
         embed.set_author(name=membre.display_name, icon_url=membre.avatar)
         await ctx.reply(embed=embed)
    
+    async def get_column_names(self, table: str) -> None:
+        cursor = await self.connection.execute(f"PRAGMA table_info({table})")
+        columns_info = await cursor.fetchall()
+
+        return [column_info[1] for column_info in columns_info]
+
+    async def sql_to_dataframe(self, table: str) -> None:
+        rows = await self.connection.execute_fetchall(f'SELECT * FROM {table} ORDER BY rang')
+        columns = await self.get_column_names(table)
+
+        return pd.DataFrame(rows, columns=columns)
+    
+
+    async def write_data(self, table: str) -> None:
+        data = await self.sql_to_dataframe(table)
+        data['avatar'] = ''
+        for index , row in data.iterrows():
+            member = self.bot.get_user(row['id'])
+            data.loc[index, 'avatar'] = str(member.avatar).split('?')[0]
+        data.to_csv(f"{parent_folder}/data/{table}.csv")
+
+
 
 async def setup(bot: commands.Bot)->None:
     await bot.add_cog(Dashboard(bot, bot.connection))
