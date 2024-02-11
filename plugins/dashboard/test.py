@@ -10,6 +10,8 @@ from sqlite3 import *
 import streamlit as st
 import pandas as pd
 
+from icecream import ic
+
 
 # |----------Anexes----------|
 def round_it(x:float, sig: int) -> float:
@@ -168,7 +170,9 @@ def leaderboard(data: pd.DataFrame) -> None:
 
 
 def main():
-    print(parent_folder.parent.parent)
+    print("\n\n")
+    ic(parent_folder.parent.parent)
+    print("\n\n")
     with connect(f"{parent_folder.parent.parent}main.sqlite") as connection:
         req = "SELECT * FROM Rank ORDER BY rang"
         leaderboard_data = pd.read_sql(req, connection)
