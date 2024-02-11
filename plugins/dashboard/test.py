@@ -173,13 +173,13 @@ def main():
     print("\n\n")
     ic(parent_folder.parent.parent)
     print("\n\n")
-    with connect(f"{parent_folder.parent.parent}main.sqlite") as connection:
-        req = "SELECT * FROM Rank ORDER BY rang"
-        leaderboard_data = pd.read_sql(req, connection)
+    # with connect(f"{parent_folder.parent.parent}main.sqlite") as connection:
+    #     req = "SELECT * FROM Rank ORDER BY rang"
+    #     leaderboard_data = pd.read_sql(req, connection)
 
-    init_streamlit_page()
-    top_border()
-    leaderboard(leaderboard_data)
+    # init_streamlit_page()
+    # top_border()
+    # leaderboard(leaderboard_data)
 
 
 
