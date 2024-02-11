@@ -1,17 +1,12 @@
-import discord
-from discord.ext import commands
-
 from pathlib import Path
 parent_folder = Path(__file__).resolve().parent
-import json
 import math
-import aiosqlite
 from sqlite3 import *
 
 import streamlit as st
 import pandas as pd
-import subprocess
 
+from icecream import ic
 
 
 # |----------Anexes----------|
@@ -73,78 +68,40 @@ def ordinal(n: int):
             return '3rd'
         case _:
             return f'{n}th'
-        
 
 
-class Dashboard(commands.Cog):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection) -> None:
-        self.bot = bot
-        self.connection = connection
-        self.leaderboard_version = {1: "Salon textuel", 2: "Salon vocaux"}
+def rank_image(data: pd.DataFrame) -> list:
+    img = []
+    for _ , row in data.iterrows():
+        match row["rang"]:
+            case 1:
+                img.append(f"<img src='https://mee6.xyz/assets/1st_place-e4d1acfc.svg'>")
+            case 2:
+                img.append(f"<img src='https://mee6.xyz/assets/2nd_place-b8abf0ce.svg'>")
+            case 3:
+                img.append(f"<img src='https://mee6.xyz/assets/3rd_place-5212c9ca.svg'>")
+            case _:
+                img.append(f"<h4> {row['rang']} </h4>")
+    return img
 
+def init_streamlit_page() -> None:
+    # st.set_page_config(layout="wide",
+    #                    page_title="Leaderboard",
+    #                    page_icon="📊"
+    #                    )
+    st.title('Leaderboard') 
+    st.header('Salons textuels') 
+    st.sidebar.success("Classement à afficher")
+    # with st.container():
+        # st.markdown("""<style> 
+        #                 body{bakgroun-color=#F792E5;}
+        #                 </style>
+        #             """, unsafe_allow_html=True)
 
-    @commands.Cog.listener(name="on_ready")
-    async def init_dashboard(self) -> None:
-        await self.init_streamlit_page()
-        self.leaderboard(await self.load_data_from_sql())
-
-
-    @commands.hybrid_command(name="dashboard", description="1: salons textuels\n2: salons vocaux")
-    async def dashboard(self, ctx: commands.Context, type: int=1)->discord.Message:
-        membre = ctx.author
-
-        await self.init_streamlit_page()
-        self.leaderboard(await self.load_data_from_sql())
-
-        embed = discord.Embed(
-            title=f"Leaderboard {self.leaderboard_version[type].lower()}",
-            description="Accède au classement [ici](https://discordchill-test.streamlit.app/)",
-            color=discord.Color.blurple()
-        )
-        embed.set_author(name=membre.display_name, icon_url=membre.avatar)
-        await ctx.reply(embed=embed)
-        
-
-    async def load_data_from_sql(self) -> pd.DataFrame:
-        """Récupère les données depuis la BDD et les renvoies dans un DataFrame
-
-        Returns:
-            pd.DataFrame: Données rangées dans un DataFrame
-        """
-        column_names = await self.get_column_names(self.connection,'Rank')
-        data = await self.connection.execute_fetchall("SELECT * FROM Rank ORDER BY rang")
-
-        return pd.DataFrame(data, columns=[name for name in column_names])
-
-    async def get_column_names(self, connection: aiosqlite.Connection, table_name: str) -> list[str]:
-        """Exécute une requête SQL pour obtenir les informations sur la structure de la table
-
-        Args:
-            connection (aiosqlite.Connection): Conncetion asynchrone à la BDD
-            table_name (str): Nom de la tabla
-
-        Returns:
-            list[str]: Nom des colonnes
-        """
-        cursor = await connection.execute(f"PRAGMA table_info({table_name})")
-        columns_info = await cursor.fetchall()
-
-        # Extrait les noms des colonnes de la liste des informations sur la structure
-        return [column_info[1] for column_info in columns_info]
-
-    async def init_streamlit_page(self) -> None:
-        st.set_page_config(layout="wide",
-                       page_title="Leaderboard",
-                       page_icon="📊"
-                       )
-        st.title('Leaderboard') 
-        st.button("Switch")
-        st.header('Salons textuels') 
-        st.sidebar.success("Classements")
-
-        with st.container():
+def top_border():
+    with st.container():
         # Style de l'entête
-            st.markdown(
+        st.markdown(
             f"""<div style="display: flex;">
                     <div style="width:83%; display: flex;"> 
                         <div style="width:5%;"> </div>
@@ -184,16 +141,17 @@ class Dashboard(commands.Cog):
             """, unsafe_allow_html=True
         )
 
-
-    def leaderboard(self, data: pd.DataFrame) -> None:
-        img = self.rank_icone(data)
-        # Pour chaque joueur dans le leaderboard
-        for index , row in data.iterrows():
-            # Conteneur avec les infos du joueur
-            with st.container():
-                # Style du bandeau
-                st.markdown(
-                    f"""<div style="background-color: #1D1E24; padding: 1px; border-radius: 10px; margin-bottom: 30px; display: flex;">
+def leaderboard(data: pd.DataFrame) -> None:
+    img = rank_image(data)
+    st.write(data)
+    st.write(img)
+    # Pour chaque joueur dans le leaderboard
+    for index , row in data.iterrows():
+        # Conteneur avec les infos du joueur
+        with st.container():
+            # Style du bandeau
+            st.markdown(
+                f"""<div style="background-color: #1D1E24; padding: 1px; border-radius: 10px; margin-bottom: 30px; display: flex;">
                         <div style="width:83%; display: flex;">
                             <div style="width:1%;"> </div>
                             <div style="width:3%;"> {img[index]} </div>
@@ -204,25 +162,26 @@ class Dashboard(commands.Cog):
                             <div style="width:33%;"> <h4> {pretty_print(row["xp"])} </h4> </div>
                             <div style="width:33%;"> <h4> {row["lvl"]} </h4> </div>
                         </div>
-                    </div>
-                    """,unsafe_allow_html=True
-                )
-
-    def rank_icone(self, data: pd.DataFrame) -> list:
-        img = []
-        for _ , row in data.iterrows():
-            match row["rang"]:
-                case 1:
-                    img.append(f"<img src='https://mee6.xyz/assets/1st_place-e4d1acfc.svg'>")
-                case 2:
-                    img.append(f"<img src='https://mee6.xyz/assets/2nd_place-b8abf0ce.svg'>")
-                case 3:
-                    img.append(f"<img src='https://mee6.xyz/assets/3rd_place-5212c9ca.svg'>")
-                case _:
-                    img.append(f"<h3> {row['rang']} </h3>")
-        return img
+                    </div>""",
+                unsafe_allow_html=True
+            )
 
 
+def main():
+    with connect(f"{parent_folder.parent.parent}/main.sqlite") as connection:
+        req = "SELECT * FROM Rank ORDER BY rang"
+        leaderboard_data = pd.read_sql(req, connection)
+        curseur = connection.cursor()
+        curseur.execute(req)
+        res = curseur.fetchall()
+        ic(res)
 
-async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Dashboard(bot, bot.connection))
+    init_streamlit_page()
+    top_border()
+    st.write(leaderboard_data)
+    leaderboard(leaderboard_data)
+
+
+
+if __name__ == '__main__':
+    main()
