@@ -171,6 +171,7 @@ def leaderboard(data: pd.DataFrame) -> None:
 
 def main():
     print("\n\n")
+    ic(parent_folder.parent)
     ic(parent_folder.parent.parent)
     print("\n\n")
     # with connect(f"{parent_folder.parent.parent}main.sqlite") as connection:
