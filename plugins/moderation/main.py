@@ -23,17 +23,6 @@ class Moderation(commands.Cog):
     async def clear(self, ctx: commands.Context, nombre: int=1):
         await ctx.defer()
         await ctx.channel.purge(limit=nombre + 1)
-        
-    
-    @commands.command(name='test')
-    async def test(self, ctx: commands.Context)->discord.Message:
-        file = 'channels'
-        logs = self.load_json(file)
-        channel = ctx.channel
-        
-        logs[channel.name] = channel.id
-        self.write_json(logs, file)
-        await ctx.reply("Channel sauvegardé") 
     
     
     def load_json(self, file: str)->dict:

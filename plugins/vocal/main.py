@@ -503,9 +503,8 @@ class Vocal(commands.Cog):
         Returns:
             bool: Résultat sous forme de boléen
         """
-        res = sum(int(not participant.bot) for participant in channel.members)
-        return res == 1
-        
+        return sum(int(not participant.bot) for participant in channel.members) == 1
+
     def is_voice_channel_enought_fill(self, channel: discord.VoiceChannel) -> bool:
         """Check si le salon ne contient plus d'un seul membre non bot
 
@@ -515,10 +514,8 @@ class Vocal(commands.Cog):
         Returns:
             bool: Résultat sous forme de boléen
         """
-        res = sum(int(not participant.bot) for participant in channel.members)
-        return res > 1
+        return sum(int(not participant.bot) for participant in channel.members) > 1
 
-            
 
 
     async def manage_xp(self, action: str, member_id: int, amount: int)->None:

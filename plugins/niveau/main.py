@@ -1,4 +1,3 @@
-from typing import Optional
 import discord
 from discord.ext import commands
 
@@ -212,6 +211,16 @@ class Rank(commands.Cog):
     
     @commands.hybrid_command(name='add_xp')
     async def add_xp(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+        """Ajoute de l'xp à un membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member_target (discord.Member): Membre target
+            amout (int): Quantité
+
+        Returns:
+            bool: L'opération a échoué ou non
+        """
         member = ctx.author
 
         if member.guild_permissions.administrator:
@@ -228,6 +237,16 @@ class Rank(commands.Cog):
     
     @commands.hybrid_command(name='remove_xp')
     async def remove_xp(self, ctx: commands.Context, member_target: discord.Member, amout: int)->discord.Message:
+        """Retire de l'xp à un membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member_target (discord.Member): Membre target
+            amout (int): Quantité
+
+        Returns:
+            bool: L'opération a échoué ou non
+        """
         member = ctx.author
 
         if member.guild_permissions.administrator:
@@ -244,6 +263,15 @@ class Rank(commands.Cog):
     
     @commands.hybrid_command(name='reset_xp')
     async def reset_xp(self, ctx: commands.Context, member_target: discord.Member)->discord.Message:
+        """Remet à 0 l'xp du membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member_target (discord.Member): Membre target
+
+        Returns:
+            bool: L'opération a échoué ou non
+        """
         member = ctx.author
 
         if member.guild_permissions.administrator:
@@ -254,6 +282,15 @@ class Rank(commands.Cog):
     
     @commands.hybrid_command(name='rang')
     async def rang(self, ctx: commands.Context, member: discord.Member=None)->discord.Message:
+        """Affiche les infos relative au membre
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            member (discord.Member, optional): Membre target. Defaults to Auteur de la commande.
+
+        Returns:
+            discord.Message: _description_
+        """
         if not member:
             member = ctx.author
         
@@ -282,6 +319,14 @@ class Rank(commands.Cog):
 
     @commands.hybrid_command(name='leaderboard')
     async def leaderboard(self, ctx: commands.Context)->discord.Message:
+        """Affiche les 5 premiers membres du classement
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+
+        Returns:
+            discord.Message: Message du leaderboard
+        """
         embed = discord.Embed(
             title="Leaderboard",
             color=discord.Color.random()
@@ -296,13 +341,13 @@ class Rank(commands.Cog):
         return await ctx.send(embed=embed)
 
 
-    @commands.hybrid_command(name='dashboard')
-    async def dashboard(self, ctx: commands.Context)->discord.Message:
-        return await ctx.send("Commande en cours de développement")
-        
-        
     @commands.Cog.listener(name='on_message')
     async def message_sent(self, message: discord.Message)->None:
+        """Ajoute de l'xp à l'envoie d'un message
+
+        Args:
+            message (discord.Message): Message envoyé
+        """
         member = message.author
         current_time = dt.now()
 
