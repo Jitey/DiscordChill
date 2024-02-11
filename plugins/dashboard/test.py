@@ -168,8 +168,9 @@ def leaderboard(data: pd.DataFrame) -> None:
 
 
 def main():
+    print(parent_folder.parent.parent)
     with connect(f"{parent_folder.parent.parent}main.sqlite") as connection:
-        req = "SELECT * FROM 'Rank' ORDER BY rang"
+        req = "SELECT * FROM Rank ORDER BY rang"
         leaderboard_data = pd.read_sql(req, connection)
 
     init_streamlit_page()
