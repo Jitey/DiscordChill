@@ -179,7 +179,6 @@ def main():
     top_border()
     leaderboard(leaderboard_data)
 
-    subprocess.Popen(['streamlit', 'run', f'{parent_folder}/main.py'])
 
 
 if __name__ == '__main__':

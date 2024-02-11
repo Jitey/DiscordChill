@@ -98,7 +98,7 @@ class Dashboard(commands.Cog):
 
         embed = discord.Embed(
             title=f"Leaderboard {self.leaderboard_version[type].lower()}",
-            description="Accède au classement ici: http://172.20.10.3:8501",
+            description="Accède au classement [ici](http://172.20.10.3:8501)",
             color=discord.Color.blurple()
         )
         embed.set_author(name=membre.display_name, icon_url=membre.avatar)
@@ -226,4 +226,3 @@ class Dashboard(commands.Cog):
 
 async def setup(bot: commands.Bot)->None:
     await bot.add_cog(Dashboard(bot, bot.connection))
-    # subprocess.run(['streamlit', 'run', f'{parent_folder}/main.py'])
