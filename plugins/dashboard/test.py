@@ -91,6 +91,15 @@ class Dashboard(commands.Cog):
 
     @commands.hybrid_command(name="dashboard", description="1: salons textuels\n2: salons vocaux")
     async def dashboard(self, ctx: commands.Context, type: int=1)->discord.Message:
+        """Renvoie un lien vers le leaderboard en ligne
+
+        Args:
+            ctx (commands.Context): Contexte de la commande
+            type (int, optional): Type de classement (1: textuel, 2: vocal)
+
+        Returns:
+            discord.Message: Message discord contenant le lien
+        """
         membre = ctx.author
 
         await self.init_streamlit_page()
@@ -121,7 +130,7 @@ class Dashboard(commands.Cog):
 
         Args:
             connection (aiosqlite.Connection): Conncetion asynchrone à la BDD
-            table_name (str): Nom de la tabla
+            table_name (str): Nom de la table
 
         Returns:
             list[str]: Nom des colonnes
@@ -133,6 +142,8 @@ class Dashboard(commands.Cog):
         return [column_info[1] for column_info in columns_info]
 
     async def init_streamlit_page(self) -> None:
+        """Initialise la page streamlit et l'entête du classement
+        """
         st.set_page_config(layout="wide",
                        page_title="Leaderboard",
                        page_icon="📊"
@@ -186,6 +197,12 @@ class Dashboard(commands.Cog):
 
 
     def leaderboard(self, data: pd.DataFrame) -> None:
+        """Affiche le classement sur la page streamlit
+
+        Args:
+            data (pd.DataFrame): Classement
+
+        """
         img = self.rank_icone(data)
         # Pour chaque joueur dans le leaderboard
         for index , row in data.iterrows():
@@ -209,6 +226,14 @@ class Dashboard(commands.Cog):
                 )
 
     def rank_icone(self, data: pd.DataFrame) -> list:
+        """Renvoie l'icone corpondant à la place du podium ou juste un nombre pour le reste
+
+        Args:
+            data (pd.DataFrame): Classement
+
+        Returns:
+            list: Liste des icones rangé dans l'ordre du classement
+        """
         img = []
         for _ , row in data.iterrows():
             match row["rang"]:
