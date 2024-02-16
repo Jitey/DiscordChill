@@ -328,14 +328,14 @@ class Rank(commands.Cog):
             discord.Message: Message du leaderboard
         """
         embed = discord.Embed(
-            title="Leaderboard",
+            title="Leaderboard textuel",
             color=discord.Color.random()
         )
         res = await self.get_leaderboard()
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
         for id , stat in res.items():
             member = self.bot.get_user(id)
-            embed.add_field(name=f"{self.rank_emoji(stat.rang)} {member.display_name}", value=f"Total XP: {stat.print_xp(stat.xp)}", inline=False)
+            embed.add_field(name=f"{self.rank_emoji(stat.rang)} {member.display_name}", value=f"Total XP: {stat.print_xp(stat.xp)} (level {stat.lvl})", inline=False)
         embed.set_footer()
         
         return await ctx.send(embed=embed)
@@ -486,7 +486,7 @@ class Rank(commands.Cog):
             case 3:
                 return ':third_place:'
             case _:
-                return f"{rang}:"
+                return f"`#{rang}`"
 
    
    
