@@ -113,6 +113,7 @@ class VocalProfile:
         """Calcule l'xp requit et l'xp avant le prochain lvl
         après l'initialisation de l'instance
         """
+        self.check_lvl()
         next_lvl = self.lvl + 1
         self.xp_needed = 5 * (next_lvl ** 2) + (50 * next_lvl) + 100
 
