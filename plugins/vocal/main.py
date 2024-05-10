@@ -290,6 +290,7 @@ class LeaderboardView(discord.ui.View):
             return await interaction.response.edit_message(embed=embed)
 
         except UnboundLocalError:
+            self.cursor -= 5
             return await interaction.response.send_message("Tu regarde déjà la dernière page", ephemeral=True)
 
         

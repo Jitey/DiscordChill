@@ -278,6 +278,7 @@ class LeaderboardView(discord.ui.View):
             return await interaction.response.edit_message(embed=embed)
 
         except UnboundLocalError:
+            self.cursor -= 5
             return await interaction.response.send_message("Tu regarde déjà la dernière page", ephemeral=True)
 
         
@@ -587,7 +588,7 @@ class Rank(commands.Cog):
         """
         req = f"SELECT count(*) FROM Rank"
         res = await self.connection.execute(req)
-        tamp = (await res.fetchone(res))[0]
+        tamp = (await res.fetchone())[0]
 
         if tamp % 5:
             return  tamp // 5 + 1
