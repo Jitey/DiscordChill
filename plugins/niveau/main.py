@@ -587,7 +587,7 @@ class Rank(commands.Cog):
         """
         req = f"SELECT count(*) FROM Rank"
         res = await self.connection.execute(req)
-        tamp = (await res.fetchone(
+        tamp = (await res.fetchone(res))[0]
 
         if tamp % 5:
             return  tamp // 5 + 1
