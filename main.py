@@ -17,7 +17,7 @@ load_dotenv(dotenv_path=f"{parent_folder}/.env")
 PREFIX = '+'
 
 IGNORE_EXTENSIONS = ['ping', 'dashboard', 'invite']
-# IGNORE_EXTENSIONS.append('hotreload')
+
 
 async def load_all_extensions(bot: commands.Bot):
     for plugin in glob.glob(f"{parent_folder}/plugins/**"):
