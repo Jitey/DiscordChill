@@ -223,64 +223,60 @@ class LeaderboardView(discord.ui.View):
            
     @discord.ui.button(label="Previous", emoji="⬅️")
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        try:
-            if self.page == 1:
-                raise ValueError("Tu regarde déjà la première page")
-            
-            self.cursor -= 5
+        if self.page == 1:
+            self.page = self.total_page
+            self.cursor = 5*(self.total_page - 1)
+        else:
             self.page -= 1
-            res = await self.get_leaderboard()
+            self.cursor -= 5
+        
+        res = await self.get_leaderboard()
 
-            embed = discord.Embed(
-                    title="Leaderboard",
-                    color=discord.Color.random()
-                )
-            
-            author = interaction.user
-            embed.set_author(icon_url=author.avatar.url,name=author.display_name)
-            for id , stat in res.items():
-                member = self.bot.get_user(id)
-                embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", 
-                                    value=f"Total XP: {stat.print_xp(stat.xp)}", 
-                                    inline=False)
+        embed = discord.Embed(
+                title="Leaderboard",
+                color=discord.Color.random()
+            )
+        
+        author = interaction.user
+        embed.set_author(icon_url=author.avatar.url,name=author.display_name)
+        for id , stat in res.items():
+            member = self.bot.get_user(id)
+            embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", 
+                                value=f"Total XP: {stat.print_xp(stat.xp)}", 
+                                inline=False)
 
-            embed.set_footer(text=f"{self.page}/{self.total_page}")
-            
-            return await interaction.response.edit_message(embed=embed)
-
-        except ValueError as e:
-            return await interaction.response.send_message(e, ephemeral=True)
+        embed.set_footer(text=f"{self.page}/{self.total_page}")
+        
+        return await interaction.response.edit_message(embed=embed)
             
    
     @discord.ui.button(label="Next", emoji="➡️")
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-        try:
-            if self.page == self.total_page:
-                raise ValueError("Tu regarde déjà la dernière page")
-            
-            self.cursor += 5
+        if self.page == self.total_page:
+            self.page = 1
+            self.cursor = 0
+        else:
             self.page += 1
-            res = await self.get_leaderboard()
+            self.cursor += 5
+        
+        res = await self.get_leaderboard()
 
-            embed = discord.Embed(
-                    title="Leaderboard",
-                    color=discord.Color.random()
-                )
+        embed = discord.Embed(
+                title="Leaderboard",
+                color=discord.Color.random()
+            )
+        
+        author = interaction.user
+        embed.set_author(icon_url=author.avatar.url,name=author.display_name)
+        for id , stat in res.items():
+            member = self.bot.get_user(id)
+            embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", 
+                                value=f"Total XP: {stat.print_xp(stat.xp)}", 
+                                inline=False)
             
-            author = interaction.user
-            embed.set_author(icon_url=author.avatar.url,name=author.display_name)
-            for id , stat in res.items():
-                member = self.bot.get_user(id)
-                embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", 
-                                    value=f"Total XP: {stat.print_xp(stat.xp)}", 
-                                    inline=False)
-                
-            embed.set_footer(text=f"{self.page}/{self.total_page}")
-            
-            return await interaction.response.edit_message(embed=embed)
-
-        except ValueError as e:
-            return await interaction.response.send_message(e, ephemeral=True)
+        embed.set_footer(text=f"{self.page}/{self.total_page}")
+        
+        return await interaction.response.edit_message(embed=embed)
 
         
     async def get_leaderboard(self) -> dict[XpProfile]:
