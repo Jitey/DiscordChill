@@ -32,7 +32,7 @@ class ChillBot(commands.Bot):
     
     
     async def setup_hook(self) -> None:
-        self.connection = await aiosqlite.connect('main.sqlite')
+        self.connection = await aiosqlite.connect(f'{parent_folder}/main.sqlite')
         await self.create_table(self.connection)
         
         await load_all_extensions(self)
