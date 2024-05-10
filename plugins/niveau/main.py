@@ -422,7 +422,6 @@ class Rank(commands.Cog):
         Returns:
             discord.Message: Message du leaderboard
         """
-        return await ctx.reply("Essaye plutôt **=leaderboard**")
         embed = discord.Embed(
             title="Leaderboard textuel",
             color=discord.Color.random()
