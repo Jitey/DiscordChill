@@ -14,7 +14,7 @@ import aiosqlite
 parent_folder = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=f"{parent_folder}/.env")
 
-PREFIX = '='
+PREFIX = '+'
 
 IGNORE_EXTENSIONS = ['ping', 'dashboard', 'invite']
 
