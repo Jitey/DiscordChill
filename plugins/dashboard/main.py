@@ -79,7 +79,7 @@ class Dashboard(commands.Cog):
         self.connection = connection
 
     @commands.hybrid_command(name="dashboard", description="Affiche le leaderboard complet")
-    async def leaderboard(self, ctx: commands.Context) -> discord.Message:
+    async def dashboard(self, ctx: commands.Context) -> discord.Message:
         """Affiche le leaderboard complet
 
         Args:

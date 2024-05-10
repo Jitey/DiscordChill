@@ -425,7 +425,7 @@ class Rank(commands.Cog):
             discord.Message: Message du leaderboard
         """
         embed = discord.Embed(
-            title="Leaderboard",
+            title="Leaderboard textuel",
             color=discord.Color.random()
         )
         res = await self.get_leaderboard()
@@ -587,7 +587,7 @@ class Rank(commands.Cog):
         """
         req = f"SELECT count(*) FROM Rank"
         res = await self.connection.execute(req)
-        tamp = (await res.fetchone())[0]
+        tamp = (await res.fetchone(
 
         if tamp % 5:
             return  tamp // 5 + 1

@@ -422,6 +422,7 @@ class Vocal(commands.Cog):
         # Valeues attendue : id , name , msg , xp , lvl
         if profile := await self.get_member_stats(member.id):
             stat = VocalProfile(*profile)
+            stat.check_lvl()
             
             color = discord.Color.random()
             embed = discord.Embed(
@@ -453,7 +454,7 @@ class Vocal(commands.Cog):
             discord.Message: Message du leaderboard
         """
         embed = discord.Embed(
-            title="Leaderboard",
+            title="Leaderboard vocal",
             color=discord.Color.random()
         )
         res = await self.get_leaderboard()

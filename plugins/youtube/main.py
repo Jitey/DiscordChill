@@ -10,7 +10,7 @@ import json
 
 import scrapetube
 
-from icecream import ic
+# from icecream import ic
 
 
 class RegisterView(discord.ui.View):
