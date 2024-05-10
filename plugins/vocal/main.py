@@ -224,10 +224,11 @@ class VocalProfile:
 
 
 class LeaderboardView(discord.ui.View):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection, total_page: int)->None:
+    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection, actual_page: int, total_page: int)->None:
         super().__init__()
         self.bot = bot
         self.connection = connection
+        self.page = actual_page
         self.total_page = total_page
         self.cursor = 0
     
@@ -253,10 +254,8 @@ class LeaderboardView(discord.ui.View):
                 embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}",
                                 value=f"Total Tps: {stat.print_tps(stat.time_spend)}",
                                 inline=False)
-                
-                page = stat.rang // 5
 
-            embed.set_footer(text=f"{page}/{self.total_page}")
+            embed.set_footer(text=f"{self.page}/{self.total_page}")
             
             return await interaction.response.edit_message(embed=embed)
 
@@ -282,16 +281,13 @@ class LeaderboardView(discord.ui.View):
                 embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}",
                                 value=f"Total Tps: {stat.print_tps(stat.time_spend)}",
                                 inline=False)
-                    
-                page = stat.rang // 5
                 
-            embed.set_footer(text=f"{page}/{self.total_page}")
+            embed.set_footer(text=f"{self.page}/{self.total_page}")
             
             return await interaction.response.edit_message(embed=embed)
 
-        except UnboundLocalError:
-            self.cursor -= 5
-            return await interaction.response.send_message("Tu regarde déjà la dernière page", ephemeral=True)
+        except ValueError as e:
+            return await interaction.response.send_message(e, ephemeral=True)
 
         
     async def get_leaderboard(self) -> dict[VocalProfile]:
@@ -323,7 +319,6 @@ class Vocal(commands.Cog):
     async def init_vocal(self):
         """Comme un __post_init__ mais sur l'event on_ready"""
         self.afk_channel = self.bot.get_channel(self.channels['afk'])
-
 
 
 
@@ -446,7 +441,7 @@ class Vocal(commands.Cog):
 
     @commands.hybrid_command(name='vleaderboard')
     async def leaderboard(self, ctx: commands.Context)->discord.Message:
-        """Affiche les 5 premiers membres du classement
+        """Affiche les membres du classement 5 par 5
 
         Args:
             ctx (commands.Context): Contexte de la commande
@@ -463,14 +458,12 @@ class Vocal(commands.Cog):
         for id , stat in res.items():
             member = self.bot.get_user(id)
             embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", value=f"Total Tps: {stat.print_tps(stat.time_spend)}", inline=False)
-
-            page = stat.rang % 5 + 1
         
         total_page = await self.pages_count()
 
-        embed.set_footer(text=f"{page}/{total_page}")
+        embed.set_footer(text=f"{1}/{total_page}")
         
-        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connection, total_page))
+        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connection, 1, total_page))
 
 
     @commands.Cog.listener(name="on_voice_state_update")
@@ -731,8 +724,6 @@ class Vocal(commands.Cog):
         else:
             return  tamp // 5
 
-   
- 
    
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
