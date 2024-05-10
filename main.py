@@ -16,7 +16,7 @@ load_dotenv(dotenv_path=f"{parent_folder}/.env")
 
 PREFIX = '+'
 
-IGNORE_EXTENSIONS = ['ping']
+IGNORE_EXTENSIONS = ['ping', 'dashboard', 'invite']
 
 async def load_all_extensions(bot: commands.Bot):
     for plugin in glob.glob(f"{parent_folder}/plugins/**"):

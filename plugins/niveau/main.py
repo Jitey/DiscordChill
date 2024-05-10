@@ -15,6 +15,8 @@ from PIL import Image, ImageDraw
 from io import BytesIO
 import math
 
+from icecream import ic
+
 
 def round_it(x:float, sig: int)->float:
     """Arrondi à nombre au neme chiffre signifactif
@@ -196,6 +198,101 @@ class XpProfile:
         image_byte.seek(0)
         return discord.File(image_byte, filename=f'{name}.png') 
 
+    def rank_emoji(self)->str:
+        rang = self.rang
+        match rang:
+            case 1:
+                return ':first_place:'
+            case 2:
+                return ':second_place:' 
+            case 3:
+                return ':third_place:'
+            case _:
+                return f"{rang}:"
+
+
+class LeaderboardView(discord.ui.View):
+    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection, total_page: int)->None:
+        super().__init__()
+        self.bot = bot
+        self.connection = connection
+        self.total_page = total_page
+        self.cursor = 0
+    
+           
+    @discord.ui.button(label="Previous", emoji="⬅️")
+    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        try:
+            if self.cursor == 0:
+                raise ValueError("Tu regarde déjà la première page")
+            
+            self.cursor -= 5
+            res = await self.get_leaderboard()
+
+            embed = discord.Embed(
+                    title="Leaderboard",
+                    color=discord.Color.random()
+                )
+            
+            author = interaction.user
+            embed.set_author(icon_url=author.avatar.url,name=author.display_name)
+            for id , stat in res.items():
+                member = self.bot.get_user(id)
+                embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", 
+                                    value=f"Total XP: {stat.print_xp(stat.xp)}", 
+                                    inline=False)
+                
+                page = stat.rang // 5
+
+            embed.set_footer(text=f"{page}/{self.total_page}")
+            
+            return await interaction.response.edit_message(embed=embed)
+
+        except ValueError as e:
+            return await interaction.response.send_message(e, ephemeral=True)
+            
+   
+    @discord.ui.button(label="Next", emoji="➡️")
+    async def next(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        try:
+            self.cursor += 5
+            res = await self.get_leaderboard()
+
+            embed = discord.Embed(
+                    title="Leaderboard",
+                    color=discord.Color.random()
+                )
+            
+            author = interaction.user
+            embed.set_author(icon_url=author.avatar.url,name=author.display_name)
+            for id , stat in res.items():
+                member = self.bot.get_user(id)
+                embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", 
+                                    value=f"Total XP: {stat.print_xp(stat.xp)}", 
+                                    inline=False)
+                
+                page = stat.rang // 5
+                
+            embed.set_footer(text=f"{page}/{self.total_page}")
+            
+            return await interaction.response.edit_message(embed=embed)
+
+        except UnboundLocalError:
+            return await interaction.response.send_message("Tu regarde déjà la dernière page", ephemeral=True)
+
+        
+    async def get_leaderboard(self) -> dict[XpProfile]:
+        """Renvoie un dictionnaire de tout les profils
+
+        Returns:
+            dict[XpProfile]: Profils de tout les membres
+        """
+        req = f"SELECT * FROM Rank WHERE rang > {self.cursor} ORDER BY rang LIMIT 5"
+        stats = await self.connection.execute_fetchall(req)
+
+        return {stat[0]: XpProfile(*stat) for stat in stats}
+    
+
 
 
 
@@ -335,10 +432,15 @@ class Rank(commands.Cog):
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
         for id , stat in res.items():
             member = self.bot.get_user(id)
-            embed.add_field(name=f"{self.rank_emoji(stat.rang)} {member.display_name}", value=f"Total XP: {stat.print_xp(stat.xp)}", inline=False)
-        embed.set_footer()
+            embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", value=f"Total XP: {stat.print_xp(stat.xp)}", inline=False)
+
+            page = stat.rang % 5 + 1
         
-        return await ctx.send(embed=embed)
+        total_page = await self.pages_count()
+
+        embed.set_footer(text=f"{page}/{total_page}")
+        
+        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connection, total_page))
 
 
     @commands.Cog.listener(name='on_message')
@@ -466,28 +568,31 @@ class Rank(commands.Cog):
 
         return {stat[0]: XpProfile(*stat) for stat in stats}
    
-    async def get_leaderboard(self) -> dict[XpProfile]:
+    async def get_leaderboard(self, limit: int=5) -> dict[XpProfile]:
         """Renvoie un dictionnaire de tout les profils
 
         Returns:
             dict[XpProfile]: Profils de tout les membres
         """
-        req = "SELECT * FROM Rank ORDER BY rang LIMIT 5"
+        req = f"SELECT * FROM Rank ORDER BY rang LIMIT {limit}"
         stats = await self.connection.execute_fetchall(req)
 
         return {stat[0]: XpProfile(*stat) for stat in stats}
    
-    def rank_emoji(self, rang: int)->str:
-       match rang:
-            case 1:
-               return ':first_place:'
-            case 2:
-                return ':second_place:' 
-            case 3:
-                return ':third_place:'
-            case _:
-                return f"{rang}:"
+    async def pages_count(self) -> int:
+        """Renvoie le nombre de page totale du leaderboard
 
+        Returns:
+            int: Nombre de page totale
+        """
+        req = f"SELECT count(*) FROM Rank"
+        res = await self.connection.execute(req)
+        tamp = (await res.fetchone())[0]
+
+        if tamp % 5:
+            return  tamp // 5 + 1
+        else:
+            return  tamp // 5
    
    
     def load_json(self, file: str)->dict:
