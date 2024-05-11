@@ -424,7 +424,7 @@ class Vocal(commands.Cog):
             
             color = discord.Color.random()
             embed = discord.Embed(
-                title=f"VRank #{stat.rang}\t\tLevel {stat.lvl}",
+                title=f"VRank #{stat.rang}\t\t\t\tLevel {stat.lvl}",
                 color=color
             )
             embed.set_thumbnail(url=member.avatar.url)
