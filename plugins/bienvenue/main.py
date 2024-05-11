@@ -3,39 +3,39 @@ from discord.ext import commands
 
 from pathlib import Path
 import json
+import aiosqlite
 parent_folder = Path(__file__).resolve().parent
 
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import requests
 
-
+from icecream import ic
 
 
 
 class Bienvenue(commands.Cog):
-    def __init__(self, bot: commands.Bot)->None:
+    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
         self.bot = bot
-
-
-    @commands.Cog.listener(name='on_ready')
-    async def initialisation(self):
+        self.connection = connection
         self.channels = self.load_channels()
-        
+
+
 
     @commands.Cog.listener(name='on_member_join')
     async def message_bienvenue(self, member: discord.Member):
         serveur = member.guild
+        author = await self.update_invites(serveur)
         
         #|----------Message de bienvenue----------|
         if not member.bot:
             embed = discord.Embed(
                 title=f"Bienvenue {member.mention} !",
-                description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
+                # description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
                 color=discord.Color.blurple()
             )
             embed.set_thumbnail(url=member.guild.icon.url)
-            embed.set_footer(icon_url=member.avatar.url ,text=f"{member.display_name} | Membre {self.member_count(serveur)}")
+            embed.set_footer(icon_url=author.avatar.url ,text=f"Invité par {author.display_name} | Membre {self.member_count(serveur)}")
 
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")
@@ -67,7 +67,18 @@ class Bienvenue(commands.Cog):
         #|----------Member count----------|
         await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
-        
+     
+     
+    async def update_invites(self, server: discord.Guild) -> discord.Invite:
+        req1 = "SELECT usage_count FROM Invite WHERE code == ?"
+        req2 = "UPDATE Invite SET usage_count = ? WHERE code == ?"
+        for invite in await server.invites():
+            tamp = (await self.connection.execute_fetchall(req1, (invite.code,)))[0][0]
+            if tamp != invite.uses:
+                await self.connection.execute(req2, (invite.uses,invite.code))
+                await self.connection.commit()
+
+                return invite.inviter 
         
     def member_count(self, serveur: discord.Guild)->int:
         """Renvoie le nombre de membre d'un serveur sans compter les bots
@@ -269,4 +280,4 @@ class Bienvenue(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Bienvenue(bot))
+    await bot.add_cog(Bienvenue(bot, bot.connection))
