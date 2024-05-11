@@ -395,7 +395,7 @@ class Rank(commands.Cog):
             
             color = discord.Color.random()
             embed = discord.Embed(
-                title=f"Rank #{stat.rang}\t\tLevel {stat.lvl}",
+                title=f"Rank #{stat.rang}\t\t\t\tLevel {stat.lvl}",
                 color=color
             )
             embed.set_thumbnail(url=member.avatar.url)
