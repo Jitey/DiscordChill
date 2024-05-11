@@ -30,8 +30,9 @@ class Bienvenue(commands.Cog):
         #|----------Message de bienvenue----------|
         if not member.bot:
             embed = discord.Embed(
-                title=f"Bienvenue {member.mention} !",
+                title=f"Bienvenue {member.display_name} je test!",
                 # description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
+                description=f"Choisis tes rôles dans `Salons et rôles`",
                 color=discord.Color.blurple()
             )
             embed.set_thumbnail(url=member.guild.icon.url)
@@ -40,7 +41,7 @@ class Bienvenue(commands.Cog):
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")
             
-            await self.channels['information'].send( embed=embed, file=image)
+            await self.channels['bienvenue'].send( embed=embed, file=image)
                 
         else:
             logs = self.load_json('logs')
@@ -57,7 +58,7 @@ class Bienvenue(commands.Cog):
         
         #|----------Message de départ----------|
         if not member.bot:
-            await self.channels['information'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
+            await self.channels['bienvenue'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
             
         else:
             logs = self.load_json('logs')
@@ -172,7 +173,7 @@ class Bienvenue(commands.Cog):
         draw = ImageDraw.Draw(image)
         r , g , b = self.color_hexa_to_rgb(text_color)
 
-        font = ImageFont.truetype(f"{parent_folder}/font/chillow.ttf", size)
+        font = ImageFont.truetype(f"{parent_folder}/font/chillow.ttf", size,)
         _ , _ , w , h = draw.textbbox((0, 0), text, font)
 
         x , y = image.size
@@ -206,8 +207,8 @@ class Bienvenue(commands.Cog):
             Image: L'image de bienvenue générée
         """
         # Récupère l'avatar du membre et le rogne
-        avatar = self.rogner_image(self.get_image_from_url(user.avatar.url).resize((240,240)))
-        avatar_y = 60
+        avatar = self.rogner_image(self.get_image_from_url(user.avatar.url).resize((200,200)))
+        avatar_y = 35
 
         # Image de fond
         if banner := user.banner:
@@ -229,7 +230,7 @@ class Bienvenue(commands.Cog):
         background.paste(avatar, (xp, avatar_y), avatar)
         
         # Texte de bienvenue
-        card = self.ecrire_on_image(background, f"{user.name} viens chill avec nous", size=60, pos=350, border_size=4)
+        card = self.ecrire_on_image(background, f"{user.name} viens chill avec nous", size=40, pos=270, border_size=4)
         
         return self.discord_image(card, "welcome_card")
 
