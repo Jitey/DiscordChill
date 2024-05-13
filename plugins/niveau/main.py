@@ -221,7 +221,7 @@ class LeaderboardView(discord.ui.View):
         self.cursor = 0
     
            
-    @discord.ui.button(label="Previous", emoji="⬅️")
+    @discord.ui.button(label="Précédent", emoji="⬅️")
     async def previous(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.page == 1:
             self.page = self.total_page
@@ -250,7 +250,7 @@ class LeaderboardView(discord.ui.View):
         return await interaction.response.edit_message(embed=embed)
             
    
-    @discord.ui.button(label="Next", emoji="➡️")
+    @discord.ui.button(label="Suivant", emoji="➡️")
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
         if self.page == self.total_page:
             self.page = 1
