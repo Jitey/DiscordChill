@@ -10,7 +10,7 @@ import json
 
 import scrapetube
 
-# from icecream import ic
+from icecream import ic
 
 
 class RegisterView(discord.ui.View):
@@ -46,15 +46,16 @@ class RegisterModal(discord.ui.Modal, title="Notification YouTube"):
         self.ytb = ytb
         self.name = name
         
-    username = discord.ui.TextInput(
+    url = discord.ui.TextInput(
         label="Enregistrer une chaîne",
         placeholder="Rentrer l'url ici"
     )
     
     async def on_submit(self, interaction: discord.Interaction)->None:
         ytb_channels = self.ytb.load_json('channel_ytb')
-        ytb_channels[self.name] = {"username": self.username.value,
-                                    "last_video": None
+        
+        ytb_channels[self.name] = {"url": self.url.value,
+                                    "last_video": next(scrapetube.get_channel(channel_url=self.url.value))['videoId']
                                     }
         
         self.ytb.write_json(ytb_channels, 'channel_ytb')
@@ -76,7 +77,7 @@ class YouTube(commands.Cog):
         """Enregistre une nouvelle chaîne ytb à la liste de notification
 
         Args:
-            ctx (commands.Context):
+            ctx (commands.Context): Contexte de la commande
             name (str): Nom de la chaîne ytb qui sera afficher dans le message
         """
         embed = discord.Embed(
@@ -89,7 +90,7 @@ class YouTube(commands.Cog):
         await ctx.send(embed=embed, view=RegisterView(self,name))
     
     
-    @tasks.loop(seconds=5)
+    @tasks.loop(minutes=1)
     async def on_video_upload(self):
         ytb_channels = self.load_json('channel_ytb')
 
