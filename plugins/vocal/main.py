@@ -541,7 +541,7 @@ class Vocal(commands.Cog):
             after (discord.VoiceState): État vocal après la connexion
         """
         try:
-            # Si le membre viensde se déconnecter
+            # Si le membre viens de se déconnecter
             if not after.channel or after.channel.id == self.afk_channel.id:
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
                 if before.channel.id == self.afk_channel.id:
@@ -572,16 +572,22 @@ class Vocal(commands.Cog):
     
             # Si le channel existe toujours et qu'il reste quelqu'un seul membre humain
             if before.channel and self.is_voice_channel_empty(before.channel):
-                last_member = before.channel.members[0]
+                for participant in before.channel.members:
+                    # N'est pas le membre qui vient de se déconnecter et n'est pas un bot
+                    if participant != member and not member.bot:
+                        last_member = participant
+                        break
+                    
                 await self.on_vocale_leave(last_member, before, after)
         
         # Sur une connection
         if before.channel is None: 
             
             # Si un deuxieme humain se connecte
-            if after.channel and self.is_voice_channel_enought_filled(after.channel):
+            if after.channel and self.is_voice_channel_enought_filled(after.channel) and not member.bot:
                 for participant in after.channel.members:
-                    if participant != member:
+                    # N'est pas le membre qui vient de connecter et n'est pas un bot
+                    if participant != member and not member.bot:
                         first_member = participant
                         break
 
