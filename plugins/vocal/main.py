@@ -551,7 +551,6 @@ class Vocal(commands.Cog):
                     await self.on_vocal_xp(profile, *tps)
                     self.voice_time_counter[member.id] = None
                 else:
-                    ic('else')
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
 
@@ -580,33 +579,31 @@ class Vocal(commands.Cog):
         if before.channel is None: 
             
             # Si un deuxieme humain se connecte
-            if after.channel and self.is_voice_channel_enought_fill(after.channel):
+            if after.channel and self.is_voice_channel_enought_filled(after.channel):
                 for participant in after.channel.members:
                     if participant != member:
                         first_member = participant
                         break
 
                 self.voice_time_counter[first_member.id] = time.perf_counter()
-        
-        ic(self.voice_time_counter)
     
     
     def is_voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
         """Check si le salon ne contient qu'un seul membre non bot
 
         Args:
-            channel (_type_): Salon vocal
+            channel (discord.VoiceChannel): Salon vocal
 
         Returns:
             bool: Résultat sous forme de boléen
         """
         return sum(int(not participant.bot) for participant in channel.members) == 1
 
-    def is_voice_channel_enought_fill(self, channel: discord.VoiceChannel) -> bool:
-        """Check si le salon ne contient plus d'un seul membre non bot
+    def is_voice_channel_enought_filled(self, channel: discord.VoiceChannel) -> bool:
+        """Check si le salon contient plus d'un seul membre non bot
 
         Args:
-            channel (_type_): Salon vocal
+            channel (discord.VoiceChannel): Salon vocal
 
         Returns:
             bool: Résultat sous forme de boléen
