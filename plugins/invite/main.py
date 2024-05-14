@@ -30,6 +30,15 @@ class Invite(commands.Cog):
         await self.connection.commit()
         
 
+    @commands.Cog.listener(name="on_member_remove")
+    async def on_invite_create(self, member: discord.Member) -> None:
+        req = "DELETE FROM Invite WHERE member_id == ?"
+
+        await self.connection.execute(req, (member.id,))
+        
+        await self.connection.commit()
+        
+
     
     
     def load_json(self, file: str)->dict:
