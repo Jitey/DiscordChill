@@ -245,7 +245,7 @@ class LeaderboardView(discord.ui.View):
         res = await self.get_leaderboard()
 
         embed = discord.Embed(
-                title="Leaderboard",
+                title="Leaderboard vocal",
                 color=discord.Color.random()
             )
         
@@ -275,7 +275,7 @@ class LeaderboardView(discord.ui.View):
         res = await self.get_leaderboard()
 
         embed = discord.Embed(
-                title="Leaderboard",
+                title="Leaderboard vocal",
                 color=discord.Color.random()
             )
         
