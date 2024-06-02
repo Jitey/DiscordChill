@@ -437,7 +437,7 @@ class Rank(commands.Cog):
         embed.set_footer(text=f"{1}/{total_page}")
         
         return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connection, 1, total_page))
-
+    
 
     @commands.Cog.listener(name='on_message')
     async def message_sent(self, message: discord.Message)->None:
@@ -467,6 +467,32 @@ class Rank(commands.Cog):
         else:
             await self.create_xp_profile(member)
             await self.message_sent(message)
+            
+    
+    @commands.Cog.listener(name='on_raw_reaction_add')
+    async def message_reaction(self, reaction: discord.Reaction)->None:
+        member = reaction.member
+        
+        # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
+        if profile := await self.get_member_stats(member.id):
+            await self.on_message_xp(profile, gain=1/5)
+
+        else:
+            await self.create_xp_profile(member)
+            await self.message_reaction(reaction)
+
+            
+    @commands.Cog.listener(name='on_raw_reaction_remove')
+    async def message_reaction(self, reaction: discord.Reaction)->None:
+        member = ic(self.bot.get_user(reaction.user_id)
+        
+        # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
+        if profile := await self.get_member_stats(member.id):
+            await self.on_message_xp(profile, gain=-1/5)
+
+        else:
+            await self.create_xp_profile(member)
+            await self.message_reaction(reaction)
     
     
     async def manage_xp(self, action: str, member_id: int, amount: int):
