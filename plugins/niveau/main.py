@@ -484,7 +484,7 @@ class Rank(commands.Cog):
             
     @commands.Cog.listener(name='on_raw_reaction_remove')
     async def message_reaction(self, reaction: discord.Reaction)->None:
-        member = ic(self.bot.get_user(reaction.user_id)
+        member = self.bot.get_user(reaction.user_id)
         
         # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
         if profile := await self.get_member_stats(member.id):
