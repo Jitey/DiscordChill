@@ -18,8 +18,7 @@ from icecream import ic
 IGNORE_EXTENSIONS = ['ping','dashboard']
 plugins_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
 parent_folder = pathlib.Path(__file__).resolve().parent
-GITHUB_REPOSITORY = "/home/container/DiscordChill"
-GITHUB_REPOSITORY = "/Users/jitey/Documents/Python/Bot/Discord/DiscordChill"
+GITHUB_REPOSITORY = parent_folder.parent.parent
 
 
 

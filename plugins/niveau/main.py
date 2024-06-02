@@ -455,7 +455,7 @@ class Rank(commands.Cog):
     
         # Cooldown
         if (member.id in self.last_message_time 
-                and (current_time - self.last_message_time[member.id]).seconds < 20
+                and (current_time - self.last_message_time[member.id]).seconds < 5
                 ):
             return
         
@@ -495,7 +495,7 @@ class Rank(commands.Cog):
 
         await self.update_classement()
     
-    async def on_message_xp(self, stat: tuple | XpProfile):
+    async def on_message_xp(self, stat: tuple | XpProfile, gain: int=1):
         """Ajoute de l'xp au membre et regard si il a level up
 
         Args:
@@ -505,7 +505,7 @@ class Rank(commands.Cog):
             stat = XpProfile(*stat)
         
         stat.msg += 1
-        stat.xp += rd.randint(15,25 + 1)
+        stat.xp += gain*rd.randint(15,25 + 1)
         
         if stat.check_lvl():
                 channel = self.bot.get_channel(self.channels['rank'])
