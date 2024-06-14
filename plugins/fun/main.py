@@ -18,7 +18,7 @@ class Fun(commands.Cog):
 
 
     @commands.hybrid_command(name='golmon', description="Reformule le message avec des majuscules aléatoirement")
-    async def golmon(msg: str, occurence: float=1/3)->str:
+    async def golmon(self, ctx: commands.Context,msg: str, occurence: float=1/3)->str:
         assert msg != "", "le message est vide"
         
         res = []
@@ -28,7 +28,7 @@ class Fun(commands.Cog):
             else:
                 res.append(c)
         
-        return "".join(res)
+        await ctx.send("".join(res))
     
     
     def load_json(self, file: str)->dict:
