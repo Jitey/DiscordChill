@@ -242,29 +242,11 @@ class LeaderboardView(discord.ui.View):
             self.page -= 1
             self.cursor -= 5
             
-        res = await self.get_leaderboard()
-
-        embed = discord.Embed(
-                title="Leaderboard vocal",
-                color=discord.Color.random()
-            )
-        
-        author = interaction.user
-        embed.set_author(icon_url=author.avatar.url,name=author.display_name)
-        for id , stat in res.items():
-            member = self.bot.get_user(id)
-            embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}",
-                            value=f"Total Tps: {stat.print_tps(stat.time_spend)}",
-                            inline=False)
-
-        embed.set_footer(text=f"{self.page}/{self.total_page}")
-        
-        return await interaction.response.edit_message(embed=embed)
+        await self.update_msg(interaction)
             
    
     @discord.ui.button(label="Suivant", emoji="➡️")
     async def next(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
-
         if self.page == self.total_page:
             self.page = 1
             self.cursor = 0
@@ -272,24 +254,7 @@ class LeaderboardView(discord.ui.View):
             self.page += 1
             self.cursor += 5
             
-        res = await self.get_leaderboard()
-
-        embed = discord.Embed(
-                title="Leaderboard vocal",
-                color=discord.Color.random()
-            )
-        
-        author = interaction.user
-        embed.set_author(icon_url=author.avatar.url,name=author.display_name)
-        for id , stat in res.items():
-            member = self.bot.get_user(id)
-            embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}",
-                            value=f"Total Tps: {stat.print_tps(stat.time_spend)}",
-                            inline=False)
-            
-        embed.set_footer(text=f"{self.page}/{self.total_page}")
-        
-        return await interaction.response.edit_message(embed=embed)
+        await self.update_msg(interaction)
 
         
     async def get_leaderboard(self) -> dict[VocalProfile]:
@@ -303,6 +268,27 @@ class LeaderboardView(discord.ui.View):
 
         return {stat[0]: VocalProfile(*stat) for stat in stats}
     
+    async def update_msg(self, interaction: discord.Integration):
+        res = await self.get_leaderboard()
+
+        embed = discord.Embed(
+                title="Leaderboard vocal",
+                color=discord.Color.random()
+            )
+        
+        author = interaction.user
+        embed.set_author(icon_url=author.avatar.url,name=author.display_name)
+        for id , stat in res.items():
+            member = self.bot.get_user(id)
+            name = member.display_name if member else stat.name
+            embed.add_field(name=f"{stat.rank_emoji()} {name}",
+                            value=f"Total Tps: {stat.print_tps(stat.time_spend)}",
+                            inline=False)
+            
+        embed.set_footer(text=f"{self.page}/{self.total_page}")
+        
+        return await interaction.response.edit_message(embed=embed)
+    
 
 
 
@@ -312,6 +298,7 @@ class Vocal(commands.Cog):
         self.bot = bot
         self.connection = connection
         self.channels = self.load_json('channels')
+        self.user_blocked = self.load_json('blocked')
         self.own_channels = {}
         self.voice_time_counter = {}
         self.afk_channel = discord.VoiceChannel
@@ -470,7 +457,7 @@ class Vocal(commands.Cog):
 
     @commands.Cog.listener(name="on_voice_state_update")
     async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
-        """Créer un salon à la connexion dans '➕ Créer ton salon'
+        """Créer un salon vocal temporaire à la connexion dans '➕ Créer ton salon'
 
         Args:
             member (discord.Member): Membre du serveur
@@ -520,6 +507,10 @@ class Vocal(commands.Cog):
             before (discord.VoiceState): État vocal avant la connexion
             after (discord.VoiceState): État vocal après la connexion
         """
+        # Ignore les comptes bloqués et les bots
+        if member.id == self.user_blocked[member.name] or member.bot:
+            return
+        
         try:
             # Si le membre viens de se connecter
             if not before.channel or before.channel.id == self.afk_channel.id:
@@ -540,6 +531,10 @@ class Vocal(commands.Cog):
             before (discord.VoiceState): État vocal avant la connexion
             after (discord.VoiceState): État vocal après la connexion
         """
+        # Ignore les comptes bloqués et les bots
+        if member.id == self.user_blocked[member.name] or member.bot:
+            return
+        
         try:
             # Si le membre viens de se déconnecter
             if not after.channel or after.channel.id == self.afk_channel.id:
