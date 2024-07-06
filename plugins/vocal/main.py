@@ -508,7 +508,7 @@ class Vocal(commands.Cog):
             after (discord.VoiceState): État vocal après la connexion
         """
         # Ignore les comptes bloqués et les bots
-        if member.id == self.user_blocked[member.name] or member.bot:
+        if member.id in self.user_blocked.values() or member.bot:
             return
         
         try:
@@ -532,7 +532,7 @@ class Vocal(commands.Cog):
             after (discord.VoiceState): État vocal après la connexion
         """
         # Ignore les comptes bloqués et les bots
-        if member.id == self.user_blocked[member.name] or member.bot:
+        if member.id in self.user_blocked.values() or member.bot:
             return
         
         try:
