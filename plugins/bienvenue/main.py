@@ -18,11 +18,12 @@ class Bienvenue(commands.Cog):
     def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
         self.bot = bot
         self.connection = connection
+        self.channels = self.load_channels()
         
     
     @commands.Cog.listener(name='on_ready')
     async def on_ready(self):
-        self.channels = ic(self.load_channels())
+        self.channels = self.load_channels()
 
 
 
@@ -33,13 +34,13 @@ class Bienvenue(commands.Cog):
         #|----------Message de bienvenue----------|
         if not member.bot:
             embed = discord.Embed(
-                title=f"Bienvenue {member.display_name} je test!",
+                title=f"Bienvenue {member.display_name} !",
                 # description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
                 description=f"Choisis tes rôles dans `Salons et rôles`",
                 color=discord.Color.blurple()
             )
             embed.set_thumbnail(url=member.guild.icon.url)
-            embed.set_footer(icon_url=member.avatar.url ,text=f"Invité par {member.display_name} | Membre {self.member_count(serveur)}")
+            embed.set_footer(icon_url=member.avatar.url ,text=f"{member.display_name} | Membre {self.member_count(serveur)}")
 
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")
@@ -219,7 +220,7 @@ class Bienvenue(commands.Cog):
             background = self.get_image_from_url(banner.url)
         else:
             # Sinon le fond default
-            background = Image.open(f"{parent_folder}/image/background.gif")
+            background = Image.open(f"{parent_folder}/image/background.png")
         background.resize((1100,500)).convert('RGBA')
             
         # Dessine une bordure blanche autour de l'avatar
