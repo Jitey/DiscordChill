@@ -25,7 +25,6 @@ class Bienvenue(commands.Cog):
     @commands.Cog.listener(name='on_member_join')
     async def message_bienvenue(self, member: discord.Member):
         serveur = member.guild
-        author = await self.update_invites(serveur)
         
         #|----------Message de bienvenue----------|
         if not member.bot:
@@ -36,7 +35,7 @@ class Bienvenue(commands.Cog):
                 color=discord.Color.blurple()
             )
             embed.set_thumbnail(url=member.guild.icon.url)
-            embed.set_footer(icon_url=author.avatar.url ,text=f"Invité par {author.display_name} | Membre {self.member_count(serveur)}")
+            embed.set_footer(icon_url=member.avatar.url ,text=f"Invité par {member.display_name} | Membre {self.member_count(serveur)}")
 
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")

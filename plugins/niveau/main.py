@@ -438,12 +438,12 @@ class Rank(commands.Cog):
         member = message.author
         current_time = dt.now()
 
-        # Ignore les messages du bot et dans les channels choisit
-        if member.bot or message.channel.id in self.channels['ignore'].values():
+        # Ignore les channels choisit
+        if message.channel.id in self.channels['ignore'].values():
             return
 
-        # Ignore les comptes bloqués
-        if member.id == self.user_blocked[member.name]:
+        # Ignore les comptes bloqués et les bots
+        if member.id in self.user_blocked.values() or member.bot:
             return
     
         # Cooldown
@@ -465,6 +465,10 @@ class Rank(commands.Cog):
     @commands.Cog.listener(name='on_raw_reaction_add')
     async def message_reaction(self, reaction: discord.Reaction)->None:
         member = reaction.member
+        
+        # Ignore les comptes bloqués et les bots
+        if member.id in self.user_blocked.values() or member.bot:
+            return
         
         # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
         if profile := await self.get_member_stats(member.id):
