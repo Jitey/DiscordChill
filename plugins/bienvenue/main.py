@@ -18,7 +18,11 @@ class Bienvenue(commands.Cog):
     def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
         self.bot = bot
         self.connection = connection
-        self.channels = self.load_channels()
+        
+    
+    @commands.Cog.listener(name='on_ready')
+    async def on_ready(self):
+        self.channels = ic(self.load_channels())
 
 
 
