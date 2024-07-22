@@ -5,6 +5,7 @@ from pathlib import Path
 parent_folder = Path(__file__).resolve().parent
 import json
 import aiosqlite
+from sqlite3 import IntegrityError
 
 from PIL import Image, ImageDraw
 from io import BytesIO
@@ -22,20 +23,20 @@ class Invite(commands.Cog):
     
     @commands.Cog.listener(name="on_invite_create")
     async def on_invite_create(self, invite: discord.Invite) -> None:
-        req = "INSERT INTO Invite (code, inviter_id, usage_count) VALUES (?,?,?)"
-        tamp = invite.code, invite.inviter.id, invite.uses
-        ic(tamp)
-        await self.connection.execute(req, tamp)
-        
-        await self.connection.commit()
+        req = "INSERT INTO Invites (code, inviter_id, inviter_name, usage_count) VALUES (?,?,?,?)"
+
+        try:
+            await self.connection.execute(req, (invite.code, invite.inviter.id, invite.inviter.name, invite.uses))
+            await self.connection.commit()
+        except IntegrityError:
+            pass
         
 
     @commands.Cog.listener(name="on_member_remove")
-    async def on_invite_create(self, member: discord.Member) -> None:
-        req = "DELETE FROM Invite WHERE member_id == ?"
+    async def on_member_leave(self, member: discord.Member) -> None:
+        req = "DELETE FROM Members WHERE id == ?"
 
         await self.connection.execute(req, (member.id,))
-        
         await self.connection.commit()
         
 

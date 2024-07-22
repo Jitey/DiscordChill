@@ -492,7 +492,7 @@ class Rank(commands.Cog):
             await self.message_reaction(reaction)
     
     
-    async def manage_xp(self, action: str, member_id: int, amount: int):
+    async def manage_xp(self, action: str, member: discord.Member, amount: int):
         """Ajoute ou retire la quantité d'xp donné
 
         Args:
@@ -500,20 +500,20 @@ class Rank(commands.Cog):
             member_id (int): Id du membre
             amount (int): Quantité d'xp
         """
-        stat = XpProfile(*await self.get_member_stats(member_id))
+        stat = XpProfile(*await self.get_member_stats(member.id))
         
         if action == 'add':
             stat.xp += amount
             xp_counter = stat.add_xp_counter + 1
-            res = "UPDATE Rank SET xp=?, lvl=?, add_xp_counteer=?, added_xp=? WHERE id==?"
+            res = "UPDATE Rank SET name=?, xp=?, lvl=?, add_xp_counter=?, added_xp=? WHERE id==?"
         elif action == 'remove':
             stat.xp -= amount
             xp_counter = stat.remove_xp_counter + 1
-            res = "UPDATE Rank SET xp=?, lvl=?, remove_xp_counteer=?, removeed_xp=? WHERE id==?"
+            res = "UPDATE Rank SET name=?, xp=?, lvl=?, remove_xp_counter=?, removed_xp=? WHERE id==?"
             
         stat.check_lvl()
 
-        await self.connection.execute(res, (stat.msg, stat.xp, stat.lvl, xp_counter, amount, stat.id))
+        await self.connection.execute(res, (member.name, stat.xp, stat.lvl, xp_counter, amount, stat.id))
         await self.connection.commit()
 
         await self.update_classement()

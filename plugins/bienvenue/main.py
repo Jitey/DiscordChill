@@ -4,11 +4,13 @@ from discord.ext import commands
 from pathlib import Path
 import json
 import aiosqlite
+from sqlite3 import IntegrityError
 parent_folder = Path(__file__).resolve().parent
 
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import requests
+from datetime import datetime as dt
 
 from icecream import ic
 
@@ -25,14 +27,28 @@ class Bienvenue(commands.Cog):
     async def on_ready(self):
         self.channels = self.load_channels()
 
-
+    @commands.hybrid_command(name='test')
+    async def test(self, ctx: commands.Context, member: discord.Member=None):
+        # if member:
+        #     await self.message_bienvenue(member)
+        # else:
+        #     await self.message_bienvenue(ctx.author)
+        for member in ctx.guild.members:
+            req = "INSERT INTO Members (id, name) VALUES (?,?)"
+            try:
+                await self.connection.execute(req, (member.id,member.name))
+            except IntegrityError:
+                pass
+            await self.connection.commit()
 
     @commands.Cog.listener(name='on_member_join')
     async def message_bienvenue(self, member: discord.Member):
         serveur = member.guild
+        invite = await self.update_invites(member.guild)
+        inviter = invite.inviter
         
-        #|----------Message de bienvenue----------|
         if not member.bot:
+            #|----------Message de bienvenue----------|
             embed = discord.Embed(
                 title=f"Bienvenue {member.display_name} !",
                 # description=f"Choisis tes rôles dans {self.channels['role'].jump_url} avec la commande `/role`",
@@ -40,12 +56,20 @@ class Bienvenue(commands.Cog):
                 color=discord.Color.blurple()
             )
             embed.set_thumbnail(url=member.guild.icon.url)
-            embed.set_footer(icon_url=member.avatar.url ,text=f"{member.display_name} | Membre {self.member_count(serveur)}")
+            embed.set_footer(icon_url=inviter.avatar.url ,text=f"Invité par {inviter.display_name} | Membre {self.member_count(serveur)}")
 
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")
             
-            await self.channels['bienvenue'].send( embed=embed, file=image)
+            # await self.channels['bienvenue'].send( embed=embed, file=image)
+
+            #|----------Update de la DB----------|
+            req = "INSERT INTO Members (id, name, invited_by, join_method, join_date) VALUES (?,?,?,?,?)"
+            try:
+                await self.connection.execute(req, (member.id,member.name,inviter.id,invite.code,dt.now()))
+            except IntegrityError:
+                pass
+            await self.connection.commit()
                 
         else:
             logs = self.load_json('logs')
@@ -70,21 +94,27 @@ class Bienvenue(commands.Cog):
             self.update_logs(logs, 'logs')
 
         #|----------Member count----------|
-        await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
+        # await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
      
      
     async def update_invites(self, server: discord.Guild) -> discord.Invite:
-        req1 = "SELECT usage_count FROM Invite WHERE code == ?"
-        req2 = "UPDATE Invite SET usage_count = ? WHERE code == ?"
-        for invite in await server.invites():
-            tamp = (await self.connection.execute_fetchall(req1, (invite.code,)))[0][0]
-            if tamp != invite.uses:
-                await self.connection.execute(req2, (invite.uses,invite.code))
-                await self.connection.commit()
+        req1 = "SELECT usage_count FROM Invites WHERE code == ?"
+        req2 = "UPDATE Invites SET usage_count=?, inviter_name=? WHERE code == ?"
+        req3 = "INSERT INTO Invites (code, inviter_id, inviter_name, usage_count) VALUES (?,?,?,?)"
 
-                return invite.inviter 
-        
+        for invite in await server.invites():
+            if usage_count := await self.connection.execute_fetchall(req1, (invite.code,)):
+                if usage_count[0][0] != invite.uses:
+                    await self.connection.execute(req2, (invite.uses,invite.inviter.name,invite.code))
+                    await self.connection.commit()
+
+                    return invite 
+            else:
+                await self.connection.execute(req3, (invite.code,invite.inviter.id,invite.inviter.name,invite.uses))
+                await self.connection.commit()
+                
+            
     def member_count(self, serveur: discord.Guild)->int:
         """Renvoie le nombre de membre d'un serveur sans compter les bots
 
@@ -161,7 +191,7 @@ class Bienvenue(commands.Cog):
         
         return cropped_image
         
-    def ecrire_on_image(self, image: Image, text: str, size: int, pos: tuple, text_color: int=0xFFFFFF, border_size: int=0, border_color: int=0x000000)->Image:
+    def write_on_image(self, image: Image, text: str, size: int, pos: tuple, text_color: int=0xFFFFFF, border_size: int=0, border_color: int=0x000000)->Image:
         """Écris du texte centrée en x sur une image à une position y données
 
         Args:
@@ -234,7 +264,7 @@ class Bienvenue(commands.Cog):
         background.paste(avatar, (xp, avatar_y), avatar)
         
         # Texte de bienvenue
-        card = self.ecrire_on_image(background, f"{user.name} viens chill avec nous", size=40, pos=270, border_size=4)
+        card = self.write_on_image(background, f"{user.name} viens chill avec nous", size=40, pos=270, border_size=4)
         
         return self.discord_image(card, "welcome_card")
 
@@ -249,6 +279,10 @@ class Bienvenue(commands.Cog):
         """
         logs = self.load_json('logs')
         return serveur.member_count - logs['bot_count']
+
+    def find_invite(self):
+        self.connection.execute()
+
 
     def load_channels(self) -> dict:
         return {
