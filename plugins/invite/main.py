@@ -31,15 +31,6 @@ class Invite(commands.Cog):
         except IntegrityError:
             pass
         
-
-    @commands.Cog.listener(name="on_member_remove")
-    async def on_member_leave(self, member: discord.Member) -> None:
-        req = "DELETE FROM Members WHERE id == ?"
-
-        await self.connection.execute(req, (member.id,))
-        await self.connection.commit()
-        
-
     
     
     def load_json(self, file: str)->dict:

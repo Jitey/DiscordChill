@@ -12,6 +12,8 @@ from io import BytesIO
 import requests
 from datetime import datetime as dt
 
+from numpy import random as rd
+
 from icecream import ic
 
 
@@ -21,25 +23,17 @@ class Bienvenue(commands.Cog):
         self.bot = bot
         self.connection = connection
         self.channels = self.load_channels()
+        self.left_msg = [
+            "s'en est allé vers d'autres horizons...",
+            "viens de quitter le navire",
+            "a disparu à l'instant",
+        ]
         
     
     @commands.Cog.listener(name='on_ready')
     async def on_ready(self):
         self.channels = self.load_channels()
 
-    @commands.hybrid_command(name='test')
-    async def test(self, ctx: commands.Context, member: discord.Member=None):
-        # if member:
-        #     await self.message_bienvenue(member)
-        # else:
-        #     await self.message_bienvenue(ctx.author)
-        for member in ctx.guild.members:
-            req = "INSERT INTO Members (id, name) VALUES (?,?)"
-            try:
-                await self.connection.execute(req, (member.id,member.name))
-            except IntegrityError:
-                pass
-            await self.connection.commit()
 
     @commands.Cog.listener(name='on_member_join')
     async def message_bienvenue(self, member: discord.Member):
@@ -61,12 +55,12 @@ class Bienvenue(commands.Cog):
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")
             
-            # await self.channels['bienvenue'].send( embed=embed, file=image)
+            await self.channels['bienvenue'].send( embed=embed, file=image)
 
             #|----------Update de la DB----------|
             req = "INSERT INTO Members (id, name, invited_by, join_method, join_date) VALUES (?,?,?,?,?)"
             try:
-                await self.connection.execute(req, (member.id,member.name,inviter.id,invite.code,dt.now()))
+                await self.connection.execute(req, (member.id,member.name,inviter.id,invite.code,member.joined_at))
             except IntegrityError:
                 pass
             await self.connection.commit()
@@ -86,12 +80,17 @@ class Bienvenue(commands.Cog):
         
         #|----------Message de départ----------|
         if not member.bot:
-            await self.channels['bienvenue'].send(f"**{member.display_name}** s'en est allé vers d'autres horizons...")
+            await self.channels['bienvenue'].send(f"**{member.display_name}** {rd.choice(self.left_msg)}")
             
         else:
             logs = self.load_json('logs')
             logs['bot_count'] -= 1
             self.update_logs(logs, 'logs')
+        
+        req = "DELETE FROM Members WHERE id == ?"
+
+        await self.connection.execute(req, (member.id,))
+        await self.connection.commit()
 
         #|----------Member count----------|
         # await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
@@ -99,6 +98,7 @@ class Bienvenue(commands.Cog):
      
      
     async def update_invites(self, server: discord.Guild) -> discord.Invite:
+        ic(server)
         req1 = "SELECT usage_count FROM Invites WHERE code == ?"
         req2 = "UPDATE Invites SET usage_count=?, inviter_name=? WHERE code == ?"
         req3 = "INSERT INTO Invites (code, inviter_id, inviter_name, usage_count) VALUES (?,?,?,?)"
