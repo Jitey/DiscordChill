@@ -4,7 +4,7 @@ from discord.ext import commands
 from pathlib import Path
 import json
 import aiosqlite
-from sqlite3 import IntegrityError
+from sqlite3 import IntegrityError, OperationalError
 parent_folder = Path(__file__).resolve().parent
 
 from PIL import Image, ImageDraw, ImageFont
@@ -15,6 +15,10 @@ from datetime import datetime as dt
 from numpy import random as rd
 
 from icecream import ic
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
 
 
 
@@ -81,19 +85,24 @@ class Bienvenue(commands.Cog):
         #|----------Message de départ----------|
         if not member.bot:
             await self.channels['bienvenue'].send(f"**{member.display_name}** {rd.choice(self.left_msg)}")
+
+            #|----------Member count----------|
+            await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
             
+            try:
+                req = "DELETE FROM Members WHERE id == ?"
+
+                await self.connection.execute(req, (member.id,))
+                await self.connection.commit()
+            except OperationalError as error:
+                logging.info(f"{error.__class__.__name__} {member.display_name}")
+
+                
         else:
             logs = self.load_json('logs')
             logs['bot_count'] -= 1
             self.update_logs(logs, 'logs')
         
-        req = "DELETE FROM Members WHERE id == ?"
-
-        await self.connection.execute(req, (member.id,))
-        await self.connection.commit()
-
-        #|----------Member count----------|
-        # await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
      
      
