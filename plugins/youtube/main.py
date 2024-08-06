@@ -95,15 +95,18 @@ class YouTube(commands.Cog):
         ytb_channels = self.load_json('channel_ytb')
 
         for nom , content in ytb_channels.items():
-            video = next(scrapetube.get_channel(channel_url=content['url']))
-            video_id = video['videoId']
+            try:
+                video = next(scrapetube.get_channel(channel_url=content['url']))
+                video_id = video['videoId']
 
-            if ytb_channels[nom]['last_video'] != video_id:
-                channel = self.bot.get_channel(self.channels['partage'])
-                await channel.send(f"**{nom}** a posté une nouvelle vidéo ! Allez la voir !\nhttps://www.youtube.com/watch?v={video_id}")
-                
-                ytb_channels[nom]['last_video'] = video_id
-                self.write_json(ytb_channels, "channel_ytb")
+                if ytb_channels[nom]['last_video'] != video_id:
+                    channel = self.bot.get_channel(self.channels['partage'])
+                    await channel.send(f"**{nom}** a posté une nouvelle vidéo ! Allez la voir !\nhttps://www.youtube.com/watch?v={video_id}")
+                    
+                    ytb_channels[nom]['last_video'] = video_id
+                    self.write_json(ytb_channels, "channel_ytb")
+            except StopIteration:
+                pass
 
     
     
