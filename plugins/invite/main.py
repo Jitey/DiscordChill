@@ -32,6 +32,19 @@ class Invite(commands.Cog):
             pass
         
     
+    @commands.hybrid_command(name="graph")
+    async def inviter_graph(self, ctx: commands.Context):
+        for id in await self.connection.execute_fetchall("SELECT id FROM Members"):
+            res = await self.connection.execute_fetchall(f"SELECT name, (SELECT count(*) FROM Members WHERE invited_by=={id[0]}) FROM Members WHERE id=={id[0]}")
+            name, count = res[0]
+            if count != 0:
+                ic(name,count)
+        embed = discord.Embed(
+            title="Répartition des inviters"
+        )
+        return await ctx.send(embed=embed)
+        
+    
     
     def load_json(self, file: str)->dict:
         """Récupère le fichier logs
