@@ -9,6 +9,7 @@ from sqlite3 import IntegrityError
 
 from PIL import Image, ImageDraw
 from io import BytesIO
+import matplotlib.pyplot as plt
 
 from icecream import ic
 
@@ -34,15 +35,47 @@ class Invite(commands.Cog):
     
     @commands.hybrid_command(name="graph")
     async def inviter_graph(self, ctx: commands.Context):
-        for id in await self.connection.execute_fetchall("SELECT id FROM Members"):
-            res = await self.connection.execute_fetchall(f"SELECT name, (SELECT count(*) FROM Members WHERE invited_by=={id[0]}) FROM Members WHERE id=={id[0]}")
-            name, count = res[0]
-            if count != 0:
-                ic(name,count)
         embed = discord.Embed(
-            title="Répartition des inviters"
+            title="Répartition des inviters",
+            color=discord.Color.random()
         )
+        embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
+
+        req = "SELECT id, invite_count FROM Members WHERE invite_count > 0 ORDER BY invite_count DESC"
+        for rang, res in enumerate(await self.connection.execute_fetchall(req)):
+            member_id, count = res
+            member = self.bot.get_user(member_id)
+            embed.add_field(name=f"{self.rank_emoji(rang+1)} {member.display_name}", value=f"{count} membres invités", inline=False)
+            ic(member.name,count)
+
         return await ctx.send(embed=embed)
+    
+    
+    async def pages_count(self) -> int:
+        """Renvoie le nombre de page totale du leaderboard
+
+        Returns:
+            int: Nombre de page totale
+        """
+        req = f"SELECT count(*) FROM Rank"
+        res = await self.connection.execute(req)
+        tamp = (await res.fetchone())[0]
+
+        if tamp % 5:
+            return  tamp // 5 + 1
+        else:
+            return  tamp // 5
+        
+    def rank_emoji(self, rang)->str:
+        match rang:
+            case 1:
+                return ':first_place:'
+            case 2:
+                return ':second_place:' 
+            case 3:
+                return ':third_place:'
+            case _:
+                return f"{rang}:"
         
     
     

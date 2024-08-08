@@ -62,9 +62,12 @@ class Bienvenue(commands.Cog):
             await self.channels['bienvenue'].send( embed=embed, file=image)
 
             #|----------Update de la DB----------|
-            req = "INSERT INTO Members (id, name, invited_by, join_method, join_date) VALUES (?,?,?,?,?)"
+            req1 = "INSERT INTO Members (id, name, invited_by, join_method, join_date) VALUES (?,?,?,?,?)"
+            req2 = "UPDATE Members set invite_count = invite_count + 1"
             try:
-                await self.connection.execute(req, (member.id,member.name,inviter.id,invite.code,member.joined_at))
+                await self.connection.execute(req1, (member.id,member.name,inviter.id,invite.code,member.joined_at))
+                await self.connection.execute(req2)
+                await self.connection.commit()
             except IntegrityError:
                 pass
             await self.connection.commit()
@@ -90,9 +93,12 @@ class Bienvenue(commands.Cog):
             await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
             
             try:
-                req = "DELETE FROM Members WHERE id == ?"
+                req1 = "DELETE FROM Members WHERE id == ?"
+                req2 = "UPDATE Members set invite_count = invite_count - 1"
 
-                await self.connection.execute(req, (member.id,))
+                await self.connection.execute(req1, (member.id,))
+                await self.connection.commit()
+                await self.connection.execute(req2)
                 await self.connection.commit()
             except OperationalError as error:
                 logging.info(f"{error.__class__.__name__} {member.display_name}")
