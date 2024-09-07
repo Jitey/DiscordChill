@@ -7,10 +7,6 @@ import json
 import aiosqlite
 from sqlite3 import IntegrityError
 
-from PIL import Image, ImageDraw
-from io import BytesIO
-import matplotlib.pyplot as plt
-
 from icecream import ic
 
 

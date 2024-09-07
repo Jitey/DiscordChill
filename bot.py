@@ -11,16 +11,15 @@ from discord.ext import commands
 import aiosqlite
 
 
-parent_folder = Path(__file__).resolve().parent
-load_dotenv(dotenv_path=f"{parent_folder}/.env")
+load_dotenv(dotenv_path="./.env")
 
-PREFIX = '+'
+PREFIX = '='
 
 IGNORE_EXTENSIONS = ['ping', 'dashboard']
 
 
 async def load_all_extensions(bot: commands.Bot):
-    for plugin in glob.glob(f"{parent_folder}/plugins/**"): 
+    for plugin in glob.glob("./plugins/**"):
         extention = plugin.split('/')[-1]
         if extention not in IGNORE_EXTENSIONS:
             await bot.load_extension(f"plugins.{extention}.main")
@@ -34,7 +33,7 @@ class ChillBot(commands.Bot):
     
     
     async def setup_hook(self) -> None:
-        self.connection = await aiosqlite.connect(f'{parent_folder}/main.sqlite')
+        self.connection = await aiosqlite.connect('./main.sqlite')
         await self.create_table(self.connection)
         
         await load_all_extensions(self)
