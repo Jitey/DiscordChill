@@ -21,12 +21,12 @@ class RegisterView(discord.ui.View):
         
         
     @discord.ui.button(label="Enregistrer", emoji="💾")
-    async def premade_button(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
+    async def add_button(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
         await interaction.response.send_modal(RegisterModal(self.ytb,self.name))
     
     
     @discord.ui.button(label="Annuler", emoji="❌")
-    async def premade_button(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
+    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button)->None:
         await self.desable_all_buttons(interaction)
         await interaction.response.defer()
     
