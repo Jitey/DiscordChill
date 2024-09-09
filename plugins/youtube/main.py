@@ -60,7 +60,8 @@ class RegisterModal(discord.ui.Modal, title="Notification YouTube"):
         
         self.ytb.write_json(ytb_channels, 'channel_ytb')
         
-        await interaction.response.defer()
+        await interaction.response.send_message(f"La châine **{self.name}** a bien été enregistrée")
+        # await interaction.response.defer()
 
 
 
