@@ -426,7 +426,10 @@ class Vocal(commands.Cog):
             await ctx.send(embed=embed, file=progress_bar)
 
         else:
-            await ctx.send("Tu ne t'es jamais connecté en vocal")
+            if member == ctx.author:
+                await ctx.send("Tu ne t'es jamais connecté en vocal")
+            else:
+                await ctx.send(f"{member.display_name} ne s'est jamais connecté en vocal")
 
 
     @commands.hybrid_command(name='vleaderboard')

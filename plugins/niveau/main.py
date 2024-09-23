@@ -38,9 +38,6 @@ def format_float(number):
     
 
 
-
-
-
 class ResetView(discord.ui.View):
     def __init__(self, connection: aiosqlite.Connection, member_target: discord.Member)->None:
         super().__init__()
@@ -89,7 +86,6 @@ class ResetView(discord.ui.View):
         req = "UPDATE Rank SET rang=DENSE_RANK() OVER (ORDER BY Rank.xp DESC) FROM Rank t2 WHERE t2.id = Rank.id"
         await self.connection.execute(req)
         await self.connection.commit()
-
 
 
 
@@ -280,9 +276,6 @@ class LeaderboardView(discord.ui.View):
     
 
 
-
-
-
 class Rank(commands.Cog):
     def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
         self.bot = bot
@@ -398,7 +391,10 @@ class Rank(commands.Cog):
             await ctx.send(embed=embed, file=progress_bar)
 
         else:
-            await ctx.send("Tu n'as jamais envoyé de message")
+            if member == ctx.author:
+                await ctx.send("Tu n'as jamais envoyé de message")
+            else:
+                await ctx.send(f"{member.display_name} n'a jamais envoyé de message")
 
 
     @commands.hybrid_command(name='leaderboard')

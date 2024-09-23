@@ -64,6 +64,21 @@ class ChillBot(commands.Bot):
             self.connection = await aiosqlite.connect('main.sqlite')
         else:
             ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
+    
+    
+    async def send_ctx_error(self, ctx: commands.Context, error: Exception)->discord.Message:
+        embed = discord.Embed(
+                        title=f"{type(error).__name__}",
+                        description=error,
+                    )
+        return await ctx.reply(embed=embed, mention_author=False)
+
+    async def send_interaction_error(self, interaction: discord.Interaction, error: Exception)->discord.Message:
+        embed = discord.Embed(
+                        title=f"{type(error).__name__}",
+                        description=error,
+                    )
+        return await interaction.reply(embed=embed)
 
 
 

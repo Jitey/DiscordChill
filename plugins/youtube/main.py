@@ -52,16 +52,18 @@ class RegisterModal(discord.ui.Modal, title="Notification YouTube"):
     )
     
     async def on_submit(self, interaction: discord.Interaction)->None:
-        ytb_channels = self.ytb.load_json('channel_ytb')
-        
-        ytb_channels[self.name] = {"url": self.url.value,
-                                    "last_video": next(scrapetube.get_channel(channel_url=self.url.value))['videoId']
-                                    }
-        
-        self.ytb.write_json(ytb_channels, 'channel_ytb')
-        
-        await interaction.response.send_message(f"La châine **{self.name}** a bien été enregistrée")
-        # await interaction.response.defer()
+        try:
+            ytb_channels = self.ytb.load_json('channel_ytb')
+            
+            ytb_channels[self.name] = {"url": self.url.value,
+                                        "last_video": next(scrapetube.get_channel(channel_url=self.url.value))['videoId']
+                                        }
+            
+            self.ytb.write_json(ytb_channels, 'channel_ytb')
+            
+            await interaction.response.send_message(f"La chaîne **{self.name}** a bien été enregistrée")
+        except Exception as error:
+            await self.ytb.bot.send_interaction_error(interaction, error)
 
 
 
