@@ -24,6 +24,14 @@ class Moderation(commands.Cog):
         await ctx.defer()
         await ctx.channel.purge(limit=nombre + 1)
     
+        
+    @commands.Cog.listener(name='on_message')
+    async def wrong_chat_pokemon(self, msg: discord.Message):
+        if msg.author.id == 432610292342587392 and msg.channel.id != 1191499973670486076:
+            async for previous_msg in msg.channel.history(limit=1, before=msg):
+                await msg.delete()
+                await previous_msg.reply(f"Attention tu ne peux pas faire ça ici ! Utilise plutôt le channel dédié <#1191499973670486076>")
+    
     
     def load_json(self, file: str)->dict:
         """Récupère le fichier logs

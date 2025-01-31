@@ -31,6 +31,9 @@ class Bienvenue(commands.Cog):
             "s'en est allé vers d'autres horizons...",
             "viens de quitter le navire",
             "a disparu à l'instant",
+            "va découvrir le nouveau monde",
+            "s'est échappé d'impel down",
+            "a pris le train des mers"
         ]
         
     
