@@ -27,10 +27,17 @@ class Moderation(commands.Cog):
         
     @commands.Cog.listener(name='on_message')
     async def wrong_chat_pokemon(self, msg: discord.Message):
+        """Alerte un utilisateur quand il joue au jeu pokemon dans le mauvais channel
+
+        Args:
+            msg (discord.Message): Message de mudae
+        """
         if msg.author.id == 432610292342587392 and msg.channel.id != 1191499973670486076:
             async for previous_msg in msg.channel.history(limit=1, before=msg):
                 await msg.delete()
-                await previous_msg.reply(f"Attention tu ne peux pas faire ça ici ! Utilise plutôt le channel dédié <#1191499973670486076>")
+                await previous_msg.reply(f"Attention tu ne peux pas faire ça ici ! Utilise plutôt le channel dédié <#1191499973670486076>", delete_after=10)
+                await previous_msg.delete(delay=10)
+                break
     
     
     def load_json(self, file: str)->dict:
