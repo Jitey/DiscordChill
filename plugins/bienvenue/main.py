@@ -28,8 +28,8 @@ class Bienvenue(commands.Cog):
         self.connection = connection
         self.channels = self.load_channels()
         self.left_msg = [
-            "s'en est allé vers d'autres horizons...",
-            "viens de quitter le navire",
+            "s'en est allé vers vers Grand Line...",
+            "viens de sauter du Thousand Sunny",
             "a disparu à l'instant",
             "va découvrir le nouveau monde",
             "s'est échappé d'impel down",
