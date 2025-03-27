@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+from typing import Generator
 from pathlib import Path
 parent_folder = Path(__file__).resolve().parent
 
@@ -95,7 +96,7 @@ class AutoRole(commands.Cog):
 
     
 
-    def game_roles(self, serveur: discord.Guild)->discord.Role:
+    def game_roles(self, serveur: discord.Guild)->Generator[discord.Role,any,any]:
         """Renvoie un itérateur des rôles avec 'Tryhard' dedans
 
         Args:
