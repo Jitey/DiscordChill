@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 from pathlib import Path
+from os.path import join
 import json
 import aiosqlite
 from sqlite3 import IntegrityError, OperationalError
@@ -23,18 +24,11 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 
 class Bienvenue(commands.Cog):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
+    def __init__(self, bot: commands.Bot, connections: dict[str, aiosqlite.Connection])->None:
         self.bot = bot
-        self.connection = connection
+        self.connections = connections
         self.channels = self.load_channels()
-        self.left_msg = [
-            "s'en est allé vers vers Grand Line...",
-            "viens de sauter du Thousand Sunny",
-            "a disparu à l'instant",
-            "va découvrir le nouveau monde",
-            "s'est échappé d'impel down",
-            "a pris le train des mers"
-        ]
+        self.left_msg = self.load_json('left_msg')
         
     
     @commands.Cog.listener(name='on_ready')
@@ -47,6 +41,8 @@ class Bienvenue(commands.Cog):
         serveur = member.guild
         invite = await self.update_invites(member.guild)
         inviter = invite.inviter
+        connection = self.connections[serveur.name]
+        channels = self.channels[serveur.name]
         
         if not member.bot:
             #|----------Message de bienvenue----------|
@@ -62,18 +58,18 @@ class Bienvenue(commands.Cog):
             image = self.image_bienvenue(member, serveur)
             embed.set_image(url="attachment://welcome_card.png")
             
-            await self.channels['bienvenue'].send( embed=embed, file=image)
+            await channels['bienvenue'].send( embed=embed, file=image)
 
             #|----------Update de la DB----------|
             req1 = "INSERT INTO Members (id, name, invited_by, join_method, join_date) VALUES (?,?,?,?,?)"
             req2 = "UPDATE Members set invite_count = invite_count + 1"
             try:
-                await self.connection.execute(req1, (member.id,member.name,inviter.id,invite.code,member.joined_at))
-                await self.connection.execute(req2)
-                await self.connection.commit()
+                await connection.execute(req1, (member.id,member.name,inviter.id,invite.code,member.joined_at))
+                await connection.execute(req2)
+                await connection.commit()
             except IntegrityError:
                 pass
-            await self.connection.commit()
+            await connection.commit()
                 
         else:
             logs = self.load_json('logs')
@@ -81,30 +77,32 @@ class Bienvenue(commands.Cog):
             self.update_logs(logs, 'logs')
 
         #|----------Member count----------|
-        await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
+        await  channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
 
 
     @commands.Cog.listener(name='on_member_remove')
     async def message_au_revoir(self, member: discord.Member):
         serveur = member.guild
+        channels = self.channels[serveur.name]
+        connection = self.connections[serveur.name]
         
         #|----------Message de départ----------|
         if not member.bot:
-            await self.channels['bienvenue'].send(f"**{member.display_name}** {rd.choice(self.left_msg)}")
+            await channels['bienvenue'].send(f"**{member.display_name}** {rd.choice(self.left_msg[serveur.name])} !")
 
             #|----------Member count----------|
-            await  self.channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
+            await channels['member_count'].edit(name=f"{self.member_count(serveur)} membres")
             
             try:
                 req1 = "DELETE FROM Members WHERE id == ?"
                 req2 = "UPDATE Members set invite_count = invite_count - 1"
 
-                await self.connection.execute(req1, (member.id,))
-                await self.connection.commit()
-                await self.connection.execute(req2)
-                await self.connection.commit()
+                await connection.execute(req1, (member.id,))
+                await connection.commit()
+                await connection.execute(req2)
+                await connection.commit()
             except OperationalError as error:
-                logging.info(f"{error.__class__.__name__} {member.display_name}")
+                logging.info(f"{error.__class__.__name__} {member.display_name} {error}")
 
                 
         else:
@@ -116,21 +114,23 @@ class Bienvenue(commands.Cog):
      
      
     async def update_invites(self, server: discord.Guild) -> discord.Invite:
-        ic(server)
-        req1 = "SELECT usage_count FROM Invites WHERE code == ?"
-        req2 = "UPDATE Invites SET usage_count=?, inviter_name=? WHERE code == ?"
-        req3 = "INSERT INTO Invites (code, inviter_id, inviter_name, usage_count) VALUES (?,?,?,?)"
+        connection = self.connections[server.name]
+        req1 = "SELECT uses FROM Invites WHERE code == ?"
+        req2 = "UPDATE Invites SET uses=?, inviter_name=? WHERE code == ?"
+        req3 = "INSERT INTO Invites (code, inviter_id, inviter_name, uses) VALUES (?,?,?,?)"
 
         for invite in await server.invites():
-            if usage_count := await self.connection.execute_fetchall(req1, (invite.code,)):
-                if usage_count[0][0] != invite.uses:
-                    await self.connection.execute(req2, (invite.uses,invite.inviter.name,invite.code))
-                    await self.connection.commit()
+            if uses := await connection.execute_fetchall(req1, (invite.code,)):
+                if uses[0][0] != invite.uses:
+                    await connection.execute(req2, (invite.uses,invite.inviter.name,invite.code))
+                    await connection.commit()
 
                     return invite 
             else:
-                await self.connection.execute(req3, (invite.code,invite.inviter.id,invite.inviter.name,invite.uses))
-                await self.connection.commit()
+                await connection.execute(req3, (invite.code,invite.inviter.id,invite.inviter.name,invite.uses))
+                await connection.commit()
+                
+                return invite
                 
             
     def member_count(self, serveur: discord.Guild)->int:
@@ -142,7 +142,7 @@ class Bienvenue(commands.Cog):
         Returns:
             int: Nombre de membre
         """
-        logs = self.load_logs()
+        logs = self.load_json('logs')[serveur.name]
         return serveur.member_count - logs['bot_count']
 
     def color_hexa_to_rgb(self, couleur: int)->tuple[int]:
@@ -268,7 +268,10 @@ class Bienvenue(commands.Cog):
             background = self.get_image_from_url(banner.url)
         else:
             # Sinon le fond default
-            background = Image.open(f"{parent_folder}/image/background.png")
+            try:
+                background = Image.open(f"{parent_folder}/image/{serveur.name}.png")
+            except FileNotFoundError:
+                background = Image.open(f"{parent_folder}/image/default.png")
         background.resize((1100,500)).convert('RGBA')
             
         # Dessine une bordure blanche autour de l'avatar
@@ -295,17 +298,27 @@ class Bienvenue(commands.Cog):
         Returns:
             int: Nombre de membre
         """
-        logs = self.load_json('logs')
+        ic(serveur)
+        ic(serveur.name)
+        logs = self.load_json('logs')[serveur.name]
         return serveur.member_count - logs['bot_count']
 
     def find_invite(self):
         self.connection.execute()
 
 
-    def load_channels(self) -> dict:
-        return {
-            channel_name: self.bot.get_channel(channel_id)
-            for channel_name, channel_id in self.load_json('channels').items()
+    def load_channels(self) -> dict[str, dict[str, discord.TextChannel|discord.VoiceChannel]]:
+        """Renvoie un dictionnaire contenant les channels du serveur avec comme clé leur nom
+
+        Returns:
+            dict[str, discord.TextChannel|discord.VoiceChannel]: dictionaire des channels
+        """
+        json_file: dict[str, dict[str, int]] = self.load_json('channels')
+        return {server_name: {
+                channel_name: self.bot.get_channel(channel_id)
+                for channel_name, channel_id in server_channels.items()
+            }
+            for server_name, server_channels in json_file.items()
         }
     
     def load_json(self, file: str)->dict:
@@ -327,7 +340,7 @@ class Bienvenue(commands.Cog):
             data (dict): Données à enregistrer
             path (str): Chemin du fichier à enregistrer
         """
-        with open(f"{parent_folder}/datafile/{path}.json", 'w') as f:
+        with open(join(parent_folder,"datafile","path",".json"), 'w') as f:
             json.dump(data,f,indent=2) 
 
 
@@ -337,4 +350,4 @@ class Bienvenue(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Bienvenue(bot, bot.connection))
+    await bot.add_cog(Bienvenue(bot, bot.connections))

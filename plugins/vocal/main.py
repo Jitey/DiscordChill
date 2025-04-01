@@ -294,12 +294,13 @@ class LeaderboardView(discord.ui.View):
 
 
 class Vocal(commands.Cog):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
+    def __init__(self, bot: commands.Bot, connections: dict[str, aiosqlite.Connection])->None:
         self.bot = bot
-        self.connection = connection
-        self.channels = self.load_json('channels')
+        self.connections = connections
+        self.channels = self.load_channels()
+        self.category = self.load_json('category')
         self.user_blocked = self.load_json('blocked')
-        self.own_channels = {}
+        self.own_channels: dict[int, discord.VoiceChannel] = {}
         self.voice_time_counter = {}
         self.afk_channel = discord.VoiceChannel
         self.vc = None
@@ -308,7 +309,7 @@ class Vocal(commands.Cog):
     @commands.Cog.listener(name="on_ready")
     async def init_vocal(self):
         """Comme un __post_init__ mais sur l'event on_ready"""
-        self.afk_channel = self.bot.get_channel(self.channels['afk'])
+        self.channels = self.load_json('channels')
 
 
 
@@ -327,7 +328,7 @@ class Vocal(commands.Cog):
         member = ctx.author
 
         if member.guild_permissions.administrator:
-            await self.manage_xp('add', member_target.id, amout)
+            await self.manage_xp('add', member_target, amout)
             embed = discord.Embed(
                 title="Ajout de temps",
                 description=f"{amout}min ajouté à {member_target.display_name}",
@@ -355,7 +356,7 @@ class Vocal(commands.Cog):
         member = ctx.author
 
         if member.guild_permissions.administrator:
-            await self.manage_xp('remove', member_target.id, amout)
+            await self.manage_xp('remove', member_target, amout)
             embed = discord.Embed(
                 title="Retrait de temps",
                 description=f"{amout}min retiré à {member_target.display_name}",
@@ -382,7 +383,7 @@ class Vocal(commands.Cog):
         member = ctx.author
 
         if member.guild_permissions.administrator:
-            await ctx.send("Tu es sûr de vouloir faire ça ?", view=ResetView(self.connection,member_target))
+            await ctx.send("Tu es sûr de vouloir faire ça ?", view=ResetView(self.connection[self.ctx.guild.name],member_target))
         else:
             await ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
         
@@ -403,10 +404,10 @@ class Vocal(commands.Cog):
         if member is None:
             member = ctx.author
 
-        await self.update_classement()
+        await self.update_classement(ctx.guild)
         
         # Valeues attendue : id , name , msg , xp , lvl
-        if profile := await self.get_member_stats(member.id):
+        if profile := await self.get_member_stats(member):
             stat = VocalProfile(*profile)
             stat.check_lvl()
             
@@ -446,17 +447,17 @@ class Vocal(commands.Cog):
             title="Leaderboard vocal",
             color=discord.Color.random()
         )
-        res = await self.get_leaderboard()
+        res = await self.get_leaderboard(ctx.guild)
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
         for id , stat in res.items():
             member = self.bot.get_user(id)
             embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", value=f"Total Tps: {stat.print_tps(stat.time_spend)}", inline=False)
         
-        total_page = await self.pages_count()
+        total_page = await self.pages_count(ctx.guild)
 
         embed.set_footer(text=f"{1}/{total_page}")
         
-        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connection, 1, total_page))
+        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connections[ctx.guild.name], 1, total_page))
 
 
     @commands.Cog.listener(name="on_voice_state_update")
@@ -469,13 +470,13 @@ class Vocal(commands.Cog):
             after (discord.VoiceState): État vocal après la connexion
         """
         serveur = member.guild
-        category = discord.utils.get(serveur.categories, id=self.channels['gaming_category'])
+        category = discord.utils.get(serveur.categories, id=self.category[serveur.name]['voice'])
         try:
             if after.channel.id == self.channels['main_salon']:
                 uzox = self.bot.get_user(760027263046909992)
                 perms = discord.PermissionOverwrite()
 
-                channel = await serveur.create_voice_channel(member.display_name,category=category, overwrites={uzox: perms})
+                channel = await serveur.create_voice_channel(member.display_name, category=category, overwrites={uzox: perms})
                 self.own_channels[channel.id] = channel
                 await member.move_to(self.own_channels[channel.id])
             
@@ -494,7 +495,9 @@ class Vocal(commands.Cog):
         """
         try:
             if channel := self.own_channels[before.channel.id]:
+                # Si le channel qu'on viens de quitter est un channel créé et devient vide
                 if before.channel.id == channel.id and not channel.members: 
+                    # On le supprime
                     await self.own_channels[channel.id].delete()
                     del self.own_channels[channel.id]
 
@@ -515,9 +518,12 @@ class Vocal(commands.Cog):
         if member.id in self.user_blocked.values() or member.bot:
             return
         
+        serveur = member.guild
+        afk_channel = self.channels[serveur]['afk']
+        
         try:
             # Si le membre viens de se connecter
-            if not before.channel or before.channel.id == self.afk_channel.id:
+            if not before.channel or before.channel.id == afk_channel.id:
                 # Si il n'est pas seul dans le channel
                 if len(after.channel.members) >= 2:
                     self.voice_time_counter[member.id] = time.perf_counter()
@@ -538,12 +544,14 @@ class Vocal(commands.Cog):
         # Ignore les comptes bloqués et les bots
         if member.id in self.user_blocked.values() or member.bot:
             return
+
+        afk_channel = self.channels[member.guild]['afk']
         
         try:
             # Si le membre viens de se déconnecter
             if not after.channel or after.channel.id == self.afk_channel.id:
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
-                if before.channel.id == self.afk_channel.id:
+                if before.channel.id == afk_channel.id:
                     tps.reverse()
 
                 if profile := await self.get_member_stats(member.id):
@@ -683,7 +691,7 @@ class Vocal(commands.Cog):
         """
         return sum(int(not participant.bot) for participant in channel.members) > 1
 
-    async def manage_xp(self, action: str, member_id: int, amount: int)->None:
+    async def manage_xp(self, serveur: discord.Guild, action: str, member: discord.Member, amount: int)->None:
         """Ajoute ou retire la quantité d'xp donné
 
         Args:
@@ -691,7 +699,8 @@ class Vocal(commands.Cog):
             member_id (int): Id du membre
             amount (int): Quantité d'xp
         """
-        stat = VocalProfile(*await self.get_member_stats(member_id))
+        connection = self.connections[member.guild.name]
+        stat = VocalProfile(*await self.get_member_stats(member.id))
         
         if action == 'add':
             stat.time_spend += amount
@@ -704,8 +713,8 @@ class Vocal(commands.Cog):
             
         stat.check_lvl()
 
-        await self.connection.execute(res, (stat.time_spend, stat.afk, stat.lvl, xp_counter, amount, stat.id))
-        await self.connection.commit()
+        await connection.execute(res, (stat.time_spend, stat.afk, stat.lvl, xp_counter, amount, stat.id))
+        await connection.commit()
 
         await self.update_classement()
     
@@ -719,26 +728,30 @@ class Vocal(commands.Cog):
         """
         if isinstance(stat, tuple):
             stat = VocalProfile(*stat)
+        member = self.bot.get_user(stat.id)
+        serveur = member.guild
+        connection = self.connections[serveur.name]
         
         stat.time_spend += time_spend // 60
         stat.afk += afk
         req = "UPDATE Vocal SET time=?, afk=?, lvl=? WHERE id==?"
         
         if stat.check_lvl():
-            channel = self.bot.get_channel(self.channels['rank'])
+            channel = self.channels['rank']
             await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
         
-        await self.connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))
-        await self.connection.commit()
+        await connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))
+        await connection.commit()
 
-        await self.update_classement()
+        await self.update_classement(serveur)
     
-    async def update_classement(self)->None:
+    async def update_classement(self, serveur: discord.Guild)->None:
         """Range par odre décroissant de temps passé en vocal les membrs dans la bdd
         """
+        connection = self.connections[serveur.name]
         req = "UPDATE Vocal SET rang=DENSE_RANK() OVER (ORDER BY Vocal.time DESC) FROM Vocal t2 WHERE t2.id = Vocal.id"
-        await self.connection.execute(req)
-        await self.connection.commit()
+        await connection.execute(req)
+        await connection.commit()
     
     async def create_vocal_profile(self, member: discord.Member)->None:
         """Ajoutes une ligne à la base de donnée pour le membre
@@ -749,11 +762,13 @@ class Vocal(commands.Cog):
         if member.id == self.bot.user.id:
             return
 
-        req = "INSERT INTO Vocal (id, name, time, afk, lvl) VALUES (?,?,?,?,?)"
-        await self.connection.execute(req, (member.id, member.name, 0, 0, 0))
-        await self.connection.commit()
+        connection = self.connections[member.guild.name]
 
-    async def get_member_stats(self, member_id: int)->VocalProfile:
+        req = "INSERT INTO Vocal (id, name, time, afk, lvl) VALUES (?,?,?,?,?)"
+        await connection.execute(req, (member.id, member.name, 0, 0, 0))
+        await connection.commit()
+
+    async def get_member_stats(self, member: discord.Member)->VocalProfile:
         """Renvoie les stats d'un membre
 
         Args:
@@ -762,31 +777,34 @@ class Vocal(commands.Cog):
         Returns:
             VocalProfile: Stats du membre
         """
+        connection = self.connections[member.guild.name]
         req = "SELECT * FROM Vocal WHERE id==?"
-        curseur = await self.connection.execute(req, (member_id,))
+        curseur = await connection.execute(req, (member.id,))
 
         # Valeues attendue : id , time , afk , rang , name
         return await curseur.fetchone()
     
-    async def get_leaderboard(self) -> dict[VocalProfile]:
+    async def get_leaderboard(self, serveur: discord.Guild) -> dict[VocalProfile]:
         """Renvoie un dictionnaire de tout les profils
 
         Returns:
             dict[VocalProfile]: Profils de tout les membres
         """
+        connection = self.connections[serveur.name]
         req = "SELECT * FROM Vocal ORDER BY rang LIMIT 5"
-        stats = await self.connection.execute_fetchall(req)
+        stats = await connection.execute_fetchall(req)
 
         return {stat[0]: VocalProfile(*stat) for stat in stats}
         
-    async def pages_count(self) -> int:
+    async def pages_count(self, serveur: discord.Guild) -> int:
         """Renvoie le nombre de page totale du leaderboard
 
         Returns:
             int: Nombre de page totale
         """
+        connection = self.connections[serveur.name]
         req = f"SELECT count(*) FROM Vocal"
-        res = await self.connection.execute(req)
+        res = await connection.execute(req)
         tamp = (await res.fetchone())[0]
 
         if tamp % 5:
@@ -794,6 +812,20 @@ class Vocal(commands.Cog):
         else:
             return  tamp // 5
 
+    def load_channels(self) -> dict[str, dict[str, discord.TextChannel|discord.VoiceChannel]]:
+        """Renvoie un dictionnaire contenant les channels du serveur avec comme clé leur nom
+
+        Returns:
+            dict[str, discord.TextChannel|discord.VoiceChannel]: dictionaire des channels
+        """
+        json_file: dict[str, dict[str, int]] = self.load_json('channels')
+        return {server_name: {
+                channel_name: self.bot.get_channel(channel_id)
+                for channel_name, channel_id in server_channels.items()
+            }
+            for server_name, server_channels in json_file.items()
+        }
+    
    
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
@@ -812,4 +844,4 @@ class Vocal(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Vocal(bot, bot.connection))
+    await bot.add_cog(Vocal(bot, bot.connections))
