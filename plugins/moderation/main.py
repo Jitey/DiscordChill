@@ -39,7 +39,7 @@ class Moderation(commands.Cog):
         """
         channel = msg.channel
         server = channel.guild
-        if msg.author.id == 432610292342587392 and channel.id != self.channels[server.name]["pokemon"]:
+        if msg.author.id == 432610292342587392 and channel.id != self.channels[server.name]["pokemon"].id:
             async for previous_msg in channel.history(limit=1, before=msg):
                 await msg.delete()
                 await previous_msg.reply(f"Attention tu ne peux pas faire ça ici ! Utilise plutôt le channel dédié <#1191499973670486076>", delete_after=10)
@@ -54,7 +54,7 @@ class Moderation(commands.Cog):
         await ctx.reply("test")
     
     
-    def load_channels(self) -> dict[str, discord.TextChannel|discord.VoiceChannel]:
+    def load_channels(self) -> dict[str, dict[str, discord.TextChannel|discord.VoiceChannel]]:
         """Renvoie un dictionnaire contenant les channels du serveur avec comme clé leur nom
 
         Returns:
