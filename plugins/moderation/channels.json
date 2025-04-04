@@ -1,6 +1,16 @@
 {
-  "information": 720990330484162601,
-  "role": 720974238499995658,
-  "member_count": 1171445650362224771,
-  "\ud83e\udd16\u30fbtest-bot": 1146395373225648178
+  "DiscordChill": {
+    "information": 720990330484162601,
+    "role": 720974238499995658,
+    "member_count": 1171445650362224771,
+    "\ud83e\udd16\u30fbtest-bot": 1146395373225648178,
+    "pokemon": 1191499973670486076
+  },
+  "Les Kheys": {
+    "information": null,
+    "role": null,
+    "member_count": null,
+    "\ud83e\udd16\u30fbtest-bot": 1146395373225648178,
+    "pokemon": null
+  }
 }

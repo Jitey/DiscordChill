@@ -38,9 +38,6 @@ def format_float(number):
     
 
 
-
-
-
 class ResetView(discord.ui.View):
     def __init__(self, connection: aiosqlite.Connection, member_target: discord.Member)->None:
         super().__init__()
@@ -89,7 +86,6 @@ class ResetView(discord.ui.View):
         req = "UPDATE Rank SET rang=DENSE_RANK() OVER (ORDER BY Rank.xp DESC) FROM Rank t2 WHERE t2.id = Rank.id"
         await self.connection.execute(req)
         await self.connection.commit()
-
 
 
 
@@ -280,17 +276,14 @@ class LeaderboardView(discord.ui.View):
     
 
 
-
-
-
 class Rank(commands.Cog):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
+    def __init__(self, bot: commands.Bot, connections: dict[str, aiosqlite.Connection])->None:
         self.bot = bot
-        self.connection = connection
+        self.connections = connections
         self.last_message_time = {}
-        self.channels = self.load_json('channels')
+        self.channels: dict[str, dict[str, int]] = self.load_json('channels')
         self.user_blocked = self.load_json('blocked')
-
+        
 
     
     @commands.hybrid_command(name='add_xp')
@@ -379,7 +372,7 @@ class Rank(commands.Cog):
             member = ctx.author
         
         # Valeues attendue : id , name , msg , xp , lvl
-        if profile := await self.get_member_stats(member.id):
+        if profile := await self.get_member_stats(member):
             stat = XpProfile(*profile)
             
             color = discord.Color.random()
@@ -398,7 +391,10 @@ class Rank(commands.Cog):
             await ctx.send(embed=embed, file=progress_bar)
 
         else:
-            await ctx.send("Tu n'as jamais envoyé de message")
+            if member == ctx.author:
+                await ctx.send("Tu n'as jamais envoyé de message")
+            else:
+                await ctx.send(f"{member.display_name} n'a jamais envoyé de message")
 
 
     @commands.hybrid_command(name='leaderboard')
@@ -411,21 +407,22 @@ class Rank(commands.Cog):
         Returns:
             discord.Message: Message du leaderboard
         """
+        serveur = ctx.guild
         embed = discord.Embed(
             title="Leaderboard textuel",
             color=discord.Color.random()
         )
-        res = await self.get_leaderboard()
+        res = await self.get_leaderboard(serveur)
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
         for id , stat in res.items():
             member = self.bot.get_user(id)
             embed.add_field(name=f"{stat.rank_emoji()} {member.display_name}", value=f"Total XP: {stat.print_xp(stat.xp)}", inline=False)
         
-        total_page = await self.pages_count()
+        total_page = await self.pages_count(serveur)
 
         embed.set_footer(text=f"{1}/{total_page}")
         
-        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connection, 1, total_page))
+        return await ctx.send(embed=embed, view=LeaderboardView(self.bot, self.connections[serveur.name], 1, total_page))
     
 
     @commands.Cog.listener(name='on_message')
@@ -436,10 +433,11 @@ class Rank(commands.Cog):
             message (discord.Message): Message envoyé
         """
         member = message.author
+        serveur = message.guild
         current_time = dt.now()
 
         # Ignore les channels choisit
-        if message.channel.id in self.channels['ignore'].values():
+        if message.channel.id in self.channels[serveur.name]['ignore'].values():
             return
 
         # Ignore les comptes bloqués et les bots
@@ -453,8 +451,8 @@ class Rank(commands.Cog):
             return
         
         # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
-        if profile := await self.get_member_stats(member.id):
-            await self.on_message_xp(profile)
+        if profile := await self.get_member_stats(member):
+            await self.on_message_xp(serveur, profile)
 
             self.last_message_time[member.id] = current_time
         else:
@@ -500,6 +498,8 @@ class Rank(commands.Cog):
             member_id (int): Id du membre
             amount (int): Quantité d'xp
         """
+        serveur = member.guild
+        connection = self.connections[serveur.name]
         stat = XpProfile(*await self.get_member_stats(member.id))
         
         if action == 'add':
@@ -513,17 +513,18 @@ class Rank(commands.Cog):
             
         stat.check_lvl()
 
-        await self.connection.execute(res, (member.name, stat.xp, stat.lvl, xp_counter, amount, stat.id))
-        await self.connection.commit()
+        await connection.execute(res, (member.name, stat.xp, stat.lvl, xp_counter, amount, stat.id))
+        await connection.commit()
 
         await self.update_classement()
     
-    async def on_message_xp(self, stat: tuple | XpProfile, gain: int=1):
+    async def on_message_xp(self, serveur: discord.Guild, stat: tuple | XpProfile, gain: int=1):
         """Ajoute de l'xp au membre et regard si il a level up
 
         Args:
             stat (tuple | XpProfile): Stats du membre
         """
+        connection = self.connections[serveur.name]
         if isinstance(stat, tuple):
             stat = XpProfile(*stat)
         
@@ -535,17 +536,18 @@ class Rank(commands.Cog):
                 await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} à l'écris !")
 
         res = "UPDATE Rank SET msg=?, xp=?, lvl=? WHERE id==?"
-        await self.connection.execute(res, (stat.msg, stat.xp, stat.lvl, stat.id))
-        await self.connection.commit()
+        await connection.execute(res, (stat.msg, stat.xp, stat.lvl, stat.id))
+        await connection.commit()
 
-        await self.update_classement()
+        await self.update_classement(serveur)
 
-    async def update_classement(self):
+    async def update_classement(self, serveur: discord.Guild)->None:
         """Range par odre décroissant d'xp les membrs dans a bdd
         """
+        connection = self.connections[serveur.name]
         req = "UPDATE Rank SET rang=DENSE_RANK() OVER (ORDER BY Rank.xp DESC) FROM Rank t2 WHERE t2.id = Rank.id"
-        await self.connection.execute(req)
-        await self.connection.commit()
+        await connection.execute(req)
+        await connection.commit()
     
     async def create_xp_profile(self, member: discord.Member)->None:
         """Ajoutes une ligne à la base de donnée pour le membre
@@ -555,13 +557,15 @@ class Rank(commands.Cog):
         """
         if member.id == self.bot.user.id:
             return
+        serveur = member.guild
+        connection = self.connections[serveur.name]
 
         req = "INSERT INTO Rank (id, name, msg, xp, lvl) VALUES (?,?,?,?,?)"
-        await self.connection.execute(req, (member.id, member.name, 0, 0, 0))
+        await connection.execute(req, (member.id, member.name, 0, 0, 0))
 
-        await self.connection.commit()
+        await connection.commit()
 
-    async def get_member_stats(self, member_id: int)->XpProfile:
+    async def get_member_stats(self, member: discord.Member)->XpProfile:
         """Renvoie les stats d'un membre
 
         Args:
@@ -570,42 +574,47 @@ class Rank(commands.Cog):
         Returns:
             XpProfile: Stats du membre
         """
+        serveur = member.guild
+        connection = self.connections[serveur.name]
         req = "SELECT * FROM Rank WHERE id==?"
-        curseur = await self.connection.execute(req, (member_id,))
+        curseur = await connection.execute(req, (member.id,))
 
-        # Valeues attendue : id , name , msg , xp , lvl , rang , add_xp_counter ...
+        # Valeures attendue : id , name , msg , xp , lvl , rang , add_xp_counter ...
         return await curseur.fetchone()
     
-    async def get_all_member_stats(self) -> dict[XpProfile]:
+    async def get_all_member_stats(self, serveur: discord.Guild) -> dict[XpProfile]:
         """Renvoie un dictionnaire de tout les profils
 
         Returns:
             dict[XpProfile]: Profils de tout les membres
         """
+        connection = self.connections[serveur.name]
         req = "SELECT * FROM Rank"
-        stats = await self.connection.execute_fetchall(req)
+        stats = await connection.execute_fetchall(req)
 
         return {stat[0]: XpProfile(*stat) for stat in stats}
    
-    async def get_leaderboard(self, limit: int=5) -> dict[XpProfile]:
+    async def get_leaderboard(self, serveur: discord.Guild, limit: int=5) -> dict[XpProfile]:
         """Renvoie un dictionnaire de tout les profils
 
         Returns:
             dict[XpProfile]: Profils de tout les membres
         """
+        connection = self.connections[serveur.name]
         req = f"SELECT * FROM Rank ORDER BY rang LIMIT {limit}"
-        stats = await self.connection.execute_fetchall(req)
+        stats = await connection.execute_fetchall(req)
 
         return {stat[0]: XpProfile(*stat) for stat in stats}
    
-    async def pages_count(self) -> int:
+    async def pages_count(self, serveur: discord.Guild) -> int:
         """Renvoie le nombre de page totale du leaderboard
 
         Returns:
             int: Nombre de page totale
         """
+        connection = self.connections[serveur.name]
         req = f"SELECT count(*) FROM Rank"
-        res = await self.connection.execute(req)
+        res = await connection.execute(req)
         tamp = (await res.fetchone())[0]
 
         if tamp % 5:
@@ -613,7 +622,7 @@ class Rank(commands.Cog):
         else:
             return  tamp // 5
    
-   
+
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
 
@@ -630,4 +639,4 @@ class Rank(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Rank(bot, bot.connection))
+    await bot.add_cog(Rank(bot, bot.connections))

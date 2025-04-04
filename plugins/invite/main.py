@@ -7,34 +7,37 @@ import json
 import aiosqlite
 from sqlite3 import IntegrityError
 
-from PIL import Image, ImageDraw
-from io import BytesIO
-import matplotlib.pyplot as plt
-
 from icecream import ic
 
 
 
 
 class Invite(commands.Cog):
-    def __init__(self, bot: commands.Bot, connection: aiosqlite.Connection)->None:
+    def __init__(self, bot: commands.Bot, connections: dict[str, aiosqlite.Connection])->None:
         self.bot = bot
-        self.connection = connection
+        self.connections = connections
         
     
     @commands.Cog.listener(name="on_invite_create")
     async def on_invite_create(self, invite: discord.Invite) -> None:
+        """Ajoute une nouvelle invite à la base de données si elle n'existe pas déjà
+
+        Args:
+            invite (discord.Invite): Invite à ajouter
+        """
+        connection = self.connections[invite.guild.name]
         req = "INSERT INTO Invites (code, inviter_id, inviter_name, usage_count) VALUES (?,?,?,?)"
 
         try:
-            await self.connection.execute(req, (invite.code, invite.inviter.id, invite.inviter.name, invite.uses))
-            await self.connection.commit()
+            await connection.execute(req, (invite.code, invite.inviter.id, invite.inviter.name, invite.uses))
+            await connection.commit()
         except IntegrityError:
             pass
         
     
     @commands.hybrid_command(name="graph")
     async def inviter_graph(self, ctx: commands.Context):
+        connection = self.connections[ctx.guild.name]
         embed = discord.Embed(
             title="Répartition des inviters",
             color=discord.Color.random()
@@ -42,7 +45,7 @@ class Invite(commands.Cog):
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
 
         req = "SELECT id, invite_count FROM Members WHERE invite_count > 0 ORDER BY invite_count DESC"
-        for rang, res in enumerate(await self.connection.execute_fetchall(req)):
+        for rang, res in enumerate(await connection.execute_fetchall(req)):
             member_id, count = res
             member = self.bot.get_user(member_id)
             embed.add_field(name=f"{self.rank_emoji(rang+1)} {member.display_name}", value=f"{count} membres invités", inline=False)
@@ -51,14 +54,15 @@ class Invite(commands.Cog):
         return await ctx.send(embed=embed)
     
     
-    async def pages_count(self) -> int:
+    async def pages_count(self, serveur: discord.Guild) -> int:
         """Renvoie le nombre de page totale du leaderboard
 
         Returns:
             int: Nombre de page totale
         """
+        connection = self.connections[serveur.name]
         req = f"SELECT count(*) FROM Rank"
-        res = await self.connection.execute(req)
+        res = await connection.execute(req)
         tamp = (await res.fetchone())[0]
 
         if tamp % 5:
@@ -102,4 +106,4 @@ class Invite(commands.Cog):
 
 
 async def setup(bot: commands.Bot)->None:
-    await bot.add_cog(Invite(bot, bot.connection))
+    await bot.add_cog(Invite(bot, bot.connections))
