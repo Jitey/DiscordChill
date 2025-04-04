@@ -470,8 +470,8 @@ class Vocal(commands.Cog):
             after (discord.VoiceState): État vocal après la connexion
         """
         serveur = member.guild
-        category = discord.utils.get(serveur.categories, id=self.category[serveur.name]['voice'])
         try:
+            category = discord.utils.get(serveur.categories, id=self.category[serveur.name]['voice'])
             if after.channel.id == self.channels['main_salon']:
                 uzox = self.bot.get_user(760027263046909992)
                 perms = discord.PermissionOverwrite()
@@ -480,7 +480,7 @@ class Vocal(commands.Cog):
                 self.own_channels[channel.id] = channel
                 await member.move_to(self.own_channels[channel.id])
             
-        except AttributeError:
+        except (AttributeError, KeyError):
             pass
         
         
@@ -519,7 +519,7 @@ class Vocal(commands.Cog):
             return
         
         serveur = member.guild
-        afk_channel = self.channels[serveur]['afk']
+        afk_channel = self.channels[serveur.name]['afk']
         
         try:
             # Si le membre viens de se connecter
@@ -545,7 +545,7 @@ class Vocal(commands.Cog):
         if member.id in self.user_blocked.values() or member.bot:
             return
 
-        afk_channel = self.channels[member.guild]['afk']
+        afk_channel = self.channels[member.guild.name]['afk']
         
         try:
             # Si le membre viens de se déconnecter

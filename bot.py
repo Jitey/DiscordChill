@@ -52,7 +52,7 @@ async def connect_to_db()->dict[str, aiosqlite.Connection]:
         logging.info(f"Connection à la base de données {server_name}")
         connection = await aiosqlite.connect(server_db)
         connections[server_name] = connection
-
+    
     return connections
         
 
