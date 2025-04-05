@@ -2,11 +2,7 @@
 
 # |----------Module d'environnement-----------|
 from os import getenv
-<<<<<<< HEAD
-from os.path import join as path_join
-=======
 from os.path import join
->>>>>>> 87fc92afb72b3a35237932f985351bcfd5a1e0dd
 from dotenv import load_dotenv
 from pathlib import Path
 import glob
@@ -24,7 +20,7 @@ logging.basicConfig(
 )
 
 parent_folder = Path(__file__).resolve().parent
-load_dotenv(dotenv_path=path_join(parent_folder,".env"))
+load_dotenv(dotenv_path=join(parent_folder,".env"))
 
 
 PREFIX = '+'
@@ -34,11 +30,7 @@ DEV_IDS = [306081415643004928]
 
 
 async def load_all_extensions(bot: commands.Bot):
-<<<<<<< HEAD
-    for plugin in glob.glob(path_join(parent_folder,"plugins","**")): 
-=======
-    for plugin in glob.glob(join(parent_folder, "plugins", "**")):
->>>>>>> 87fc92afb72b3a35237932f985351bcfd5a1e0dd
+    for plugin in glob.glob(join(parent_folder,"plugins","**")): 
         extention = plugin.split('/')[-1]
         if extention not in IGNORE_EXTENSIONS:
             try:
@@ -73,17 +65,9 @@ class ChillBot(commands.Bot):
     
     
     async def setup_hook(self) -> None:
-<<<<<<< HEAD
-        self.connection = await aiosqlite.connect(path_join(parent_folder,'main.sqlite'))
-        await self.create_table(self.connection)
-=======
-        # self.connection = await aiosqlite.connect(join(parent_folder,'databases','main.sqlite'))
-        # await self.create_table(self.connection)
-
         self.connections = await connect_to_db()
         for connection in self.connections.values():
             await self.create_table(connection)
->>>>>>> 87fc92afb72b3a35237932f985351bcfd5a1e0dd
         
         await load_all_extensions(self)
         synced = await self.tree.sync()
