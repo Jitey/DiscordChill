@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw
 from io import BytesIO
 from datetime import datetime as dt, timedelta
 
+import logging
 from icecream import ic
 
 
@@ -302,7 +303,6 @@ class Vocal(commands.Cog):
         self.user_blocked = self.load_json('blocked')
         self.own_channels: dict[int, discord.VoiceChannel] = {}
         self.voice_time_counter = {}
-        self.afk_channel = discord.VoiceChannel
         self.vc = None
         
     
@@ -428,9 +428,9 @@ class Vocal(commands.Cog):
 
         else:
             if member == ctx.author:
-                await ctx.send("Tu ne t'es jamais connecté en vocal")
+                await ctx.reply("Tu ne t'es jamais connecté en vocal")
             else:
-                await ctx.send(f"{member.display_name} ne s'est jamais connecté en vocal")
+                await ctx.reply(f"{member.display_name} ne s'est jamais connecté en vocal")
 
 
     @commands.hybrid_command(name='vleaderboard')
@@ -519,16 +519,17 @@ class Vocal(commands.Cog):
             return
         
         serveur = member.guild
-        afk_channel = self.channels[serveur.name]['afk']
-        
         try:
+            afk_channel = self.channels[serveur.name]['afk']
             # Si le membre viens de se connecter
             if not before.channel or before.channel.id == afk_channel.id:
+                logging.info(f"{member.display_name} viens de se connecter à {after.channel.name}")
                 # Si il n'est pas seul dans le channel
                 if len(after.channel.members) >= 2:
-                    self.voice_time_counter[member.id] = time.perf_counter()
-        
-        except AttributeError:
+                    self.voice_time_counter[member.id, serveur.name] = time.perf_counter()
+        except AttributeError as error:
+            logging.warning(f"{error.__class__.__name__}: Erreur dans le traitement de l'événement on_vocale_join: {member.display_name}")
+            logging.error(error)
             pass    
     
     
@@ -541,28 +542,32 @@ class Vocal(commands.Cog):
             before (discord.VoiceState): État vocal avant la connexion
             after (discord.VoiceState): État vocal après la connexion
         """
-        # Ignore les comptes bloqués et les bots
+        # Ignore les comptes bloqués et les bots    
         if member.id in self.user_blocked.values() or member.bot:
             return
-
-        afk_channel = self.channels[member.guild.name]['afk']
         
+        serveur = member.guild   
         try:
+            afk_channel = self.channels[member.guild.name]['afk']
             # Si le membre viens de se déconnecter
-            if not after.channel or after.channel.id == self.afk_channel.id:
-                tps = [int(time.perf_counter() - self.voice_time_counter[member.id]) , 0]
+            if not after.channel or after.channel.id == afk_channel.id:
+                logging.info(f"{member.display_name} viens de se déconnecter de {before.channel.name}")
+                tps = [int(time.perf_counter() - self.voice_time_counter[member.id, serveur.name]) , 0]
+                # Si le mebre était afk
                 if before.channel.id == afk_channel.id:
                     tps.reverse()
 
-                if profile := await self.get_member_stats(member.id):
-                    await self.on_vocal_xp(profile, *tps)
-                    self.voice_time_counter[member.id] = None
+                if profile := await self.get_member_stats(member):
+                    await self.on_vocal_xp(serveur, profile, *tps)
+                    logging.info(f"{member.display_name} a passé {tps[0]} secondes dans {before.channel.name}")
+                    self.voice_time_counter[member.id, serveur.name] = None
                 else:
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
 
-        except (AttributeError, KeyError, TypeError):
-            pass
+        except (AttributeError, KeyError, TypeError) as error:
+            logging.warning(f"{error.__class__.__name__}: Erreur dans le traitement de l'événement on_vocale_leave: {member.display_name}")
+            logging.error(error)
    
    
     @commands.Cog.listener(name="on_voice_state_update")
@@ -574,6 +579,8 @@ class Vocal(commands.Cog):
             before (discord.VoiceState): État vocal avant la connexion
             after (discord.VoiceState): État vocal après la connexion
         """
+        serveur = member.guild
+        
         # Sur une déconection
         if after.channel is None: 
     
@@ -598,7 +605,7 @@ class Vocal(commands.Cog):
                         first_member = participant
                         break
 
-                self.voice_time_counter[first_member.id] = time.perf_counter()
+                self.voice_time_counter[first_member.id, serveur.name] = time.perf_counter()
     
     
     @commands.hybrid_command(name="joinvc")
@@ -718,7 +725,7 @@ class Vocal(commands.Cog):
 
         await self.update_classement()
     
-    async def on_vocal_xp(self, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
+    async def on_vocal_xp(self, serveur: discord.Guild, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
         """Ajoute de l'xp au membre et regard si il a level up
 
         Args:
@@ -728,8 +735,6 @@ class Vocal(commands.Cog):
         """
         if isinstance(stat, tuple):
             stat = VocalProfile(*stat)
-        member = self.bot.get_user(stat.id)
-        serveur = member.guild
         connection = self.connections[serveur.name]
         
         stat.time_spend += time_spend // 60
@@ -737,7 +742,7 @@ class Vocal(commands.Cog):
         req = "UPDATE Vocal SET time=?, afk=?, lvl=? WHERE id==?"
         
         if stat.check_lvl():
-            channel = self.channels['rank']
+            channel: discord.TextChannel = self.channels['rank']
             await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
         
         await connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))
@@ -772,7 +777,7 @@ class Vocal(commands.Cog):
         """Renvoie les stats d'un membre
 
         Args:
-            member_id (int): Id du membre
+            member (discord.Member): Membre
 
         Returns:
             VocalProfile: Stats du membre
