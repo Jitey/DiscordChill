@@ -6,6 +6,7 @@ from os.path import join
 from dotenv import load_dotenv
 from pathlib import Path
 import glob
+from platform  import system
 # |----------Module du projet-----------|
 import discord
 from discord.ext import commands
@@ -41,8 +42,12 @@ logging.basicConfig(
     handlers=[handler]
 )
 
+
+separator = '\\' if system() == 'Windows' else '/'
 parent_folder = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=join(parent_folder,".env"))
+
+
 
 
 PREFIX = '+'
@@ -53,7 +58,7 @@ DEV_IDS = [306081415643004928]
 
 async def load_all_extensions(bot: commands.Bot):
     for plugin in glob.glob(join(parent_folder,"plugins","**")): 
-        extention = plugin.split('/')[-1]
+        extention = plugin.split(separator)[-1]
         if extention not in IGNORE_EXTENSIONS:
             try:
                 await bot.load_extension(f"plugins.{extention}.main")
