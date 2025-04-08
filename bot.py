@@ -13,10 +13,32 @@ import aiosqlite
 
 import logging
 
+class ColoredFormatter(logging.Formatter):
+    COLORS = {
+        "DEBUG": "\033[94m",  # Bleu
+        "INFO": "\033[92m",   # Vert
+        "WARNING": "\033[93m",  # Jaune
+        "ERROR": "\033[91m",  # Rouge
+        "CRITICAL": "\033[95m",  # Magenta
+    }
+    RESET = "\033[0m"
+
+    def format(self, record):
+        color = self.COLORS.get(record.levelname, self.RESET)
+        record.levelname = f"{color}{record.levelname}{self.RESET}"
+        return super().format(record)
+
+# Appliquez le gestionnaire personnalisé
+formatter = ColoredFormatter(
+    fmt='\033[90m\033[1m%(asctime)s\033[0m %(levelname)s   %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
 logging.basicConfig(
-    level=logging.INFO,  # Niveau de logging
-    format='\033[90m\033[1m%(asctime)s  [%(levelname)s]\033[0m  %(message)s',  # Format du message
-    datefmt='%Y-%m-%d %H:%M:%S'  # Format de la date et heure
+    level=logging.INFO,
+    handlers=[handler]
 )
 
 parent_folder = Path(__file__).resolve().parent

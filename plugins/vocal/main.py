@@ -303,7 +303,7 @@ class Vocal(commands.Cog):
         self.category = self.load_json('category')
         self.user_blocked = self.load_json('blocked')
         self.own_channels: dict[int, discord.VoiceChannel] = {}
-        self.voice_time_counter = {}
+        self.voice_time_counter: dict[tuple[str, str], any] = {}
         self.vc = None
         
     
@@ -527,7 +527,7 @@ class Vocal(commands.Cog):
                 logging.info(f"{serveur.name}: {member.display_name} viens de se connecter à {after.channel.name}")
                 # Si il n'est pas seul dans le channel
                 if len(after.channel.members) >= 2:
-                    self.voice_time_counter[member.id, serveur.name] = time.perf_counter()
+                    self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
         except AttributeError as error:
             logging.error(traceback.format_exc())
             pass    
@@ -552,7 +552,7 @@ class Vocal(commands.Cog):
             # Si le membre viens de se déconnecter
             if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
                 logging.info(f"{serveur.name}: {member.display_name} viens de se déconnecter de {before.channel.name}")
-                tps = [int(time.perf_counter() - self.voice_time_counter[member.id, serveur.name]) , 0]
+                tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
                 # Si le mebre était afk
                 if afk_channel and before.channel.id == afk_channel.id:
                     tps.reverse()
@@ -560,13 +560,15 @@ class Vocal(commands.Cog):
                 if profile := await self.get_member_stats(member):
                     await self.on_vocal_xp(serveur, profile, *tps)
                     logging.info(f"{member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
-                    self.voice_time_counter[member.id, serveur.name] = None
+                    self.voice_time_counter[member.name, serveur.name] = None
                 else:
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
 
-        except (AttributeError, KeyError, TypeError) as error:
+        except (AttributeError, TypeError) as error:
             logging.error(traceback.format_exc())
+        except KeyError:
+            pass
    
    
     @commands.Cog.listener(name="on_voice_state_update")
@@ -604,7 +606,7 @@ class Vocal(commands.Cog):
                         first_member = participant
                         break
 
-                self.voice_time_counter[first_member.id, serveur.name] = time.perf_counter()
+                self.voice_time_counter[first_member.name, serveur.name] = time.perf_counter()
     
    
     @commands.Cog.listener(name="on_voice_state_update")
@@ -624,12 +626,12 @@ class Vocal(commands.Cog):
         # Si le membre se mute
         if member.voice.self_mute:
             await self.on_vocale_leave(member, before, after)
-            self.voice_time_counter[member.id, serveur.name] = "muted"
+            self.voice_time_counter[member.name, serveur.name] = "muted"
             logging.info(f"{serveur.name}: {member.display_name} viens de se mute")
                 
         # Si le membre se démute
-        if not member.voice.self_mute and self.voice_time_counter[member.id, serveur.name] == "muted": 
-            self.voice_time_counter[member.id, serveur.name] = time.perf_counter()
+        if not member.voice.self_mute and self.voice_time_counter[member.name, serveur.name] == "muted": 
+            self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
             logging.info(f"{serveur.name}: {member.display_name} viens de se démute")
     
     
