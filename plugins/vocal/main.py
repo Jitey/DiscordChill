@@ -14,6 +14,7 @@ from PIL import Image, ImageDraw
 from io import BytesIO
 from datetime import datetime as dt, timedelta
 
+import traceback
 import logging
 from icecream import ic
 
@@ -519,23 +520,22 @@ class Vocal(commands.Cog):
             return
         
         serveur = member.guild
+        afk_channel = serveur.afk_channel
         try:
-            afk_channel = self.channels[serveur.name]['afk']
             # Si le membre viens de se connecter
-            if not before.channel or before.channel.id == afk_channel.id:
-                logging.info(f"{member.display_name} viens de se connecter à {after.channel.name}")
+            if not before.channel or (afk_channel and before.channel.id == afk_channel.id):
+                logging.info(f"{serveur.name}: {member.display_name} viens de se connecter à {after.channel.name}")
                 # Si il n'est pas seul dans le channel
                 if len(after.channel.members) >= 2:
                     self.voice_time_counter[member.id, serveur.name] = time.perf_counter()
         except AttributeError as error:
-            logging.warning(f"{error.__class__.__name__}: Erreur dans le traitement de l'événement on_vocale_join: {member.display_name}")
-            logging.error(error)
+            logging.error(traceback.format_exc())
             pass    
     
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
-        """Compte le temps passé en vocal
+        """Compte le temps passé en vocal et reset le timer du joueur
 
         Args:
             member (discord.Member): Memnre
@@ -547,31 +547,30 @@ class Vocal(commands.Cog):
             return
         
         serveur = member.guild   
+        afk_channel = serveur.afk_channel
         try:
-            afk_channel = self.channels[member.guild.name]['afk']
             # Si le membre viens de se déconnecter
-            if not after.channel or after.channel.id == afk_channel.id:
-                logging.info(f"{member.display_name} viens de se déconnecter de {before.channel.name}")
+            if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
+                logging.info(f"{serveur.name}: {member.display_name} viens de se déconnecter de {before.channel.name}")
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.id, serveur.name]) , 0]
                 # Si le mebre était afk
-                if before.channel.id == afk_channel.id:
+                if afk_channel and before.channel.id == afk_channel.id:
                     tps.reverse()
 
                 if profile := await self.get_member_stats(member):
                     await self.on_vocal_xp(serveur, profile, *tps)
-                    logging.info(f"{member.display_name} a passé {tps[0]} secondes dans {before.channel.name}")
+                    logging.info(f"{member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
                     self.voice_time_counter[member.id, serveur.name] = None
                 else:
                     await self.create_vocal_profile(member)
                     await self.on_vocale_leave(member, before, after)
 
         except (AttributeError, KeyError, TypeError) as error:
-            logging.warning(f"{error.__class__.__name__}: Erreur dans le traitement de l'événement on_vocale_leave: {member.display_name}")
-            logging.error(error)
+            logging.error(traceback.format_exc())
    
    
     @commands.Cog.listener(name="on_voice_state_update")
-    async def anti_farm(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def anti_farm_alone(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
         """Annule la prise en compte du temps pour quelqu'un qui reste seul dans un channel
 
         Args:
@@ -607,74 +606,32 @@ class Vocal(commands.Cog):
 
                 self.voice_time_counter[first_member.id, serveur.name] = time.perf_counter()
     
-    
-    @commands.hybrid_command(name="joinvc")
-    async def join_channel(self, ctx: commands.Context)->None:
-        """Le bot se connecte au salon vocal où se trouve le membre
-        
-        Args:
-            ctx: (commands.Context): COntexte de la commande
-        """
-        author = ctx.author
-        if voice_state := author.voice:
-            await voice_state.channel.connect()
-        else:
-            return await ctx.send("Tu n'es pas connecté en vocal")
-    
-    
-    @commands.hybrid_command(name="leavevc")
-    async def leave_channel(self, ctx: commands.Context)->None:
-        """Le bot se déconnecte du salon vocal
-        
-        Args:
-            ctx: (commands.Context): Contexte de la commande
-        """
-        if voice_clients := self.bot.voice_clients:
-            await voice_clients[0].disconnect()
-        else:
-            return await ctx.send("Je ne suis pas connecté en vocal")
-    
-    
-    @commands.Cog.listener(name="on_voice_state_update")
-    async def auto_leave_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
-        """Le bot se déconnecte automatique du salon vocal si plus personne n'y est
-        
-        Args:
-            ctx: (commands.Context): Contexte de la commande
-        """
-        if voice_clients := self.bot.voice_clients:
-            if before.channel == voice_clients[0] and not self.voice_channel_enought_filled(before):
-                await self.stop_record()
-                await self.bot.voice_clients[0].disconnect()
-    
-    
-    @commands.hybrid_command(name="record")
-    async def start_record(self, ctx: commands.Context)->None:
-        """Le bot se déconnecte du salon vocal
-        
-        Args:
-            ctx: (commands.Context): Contexte de la commande
-        """
-        if self.bot.voice_clients:
-            await self.bot.voice_clients
-    
-    
-    @commands.hybrid_command(name="stop_record")
-    async def stop_record(self, ctx: commands.Context=None)->None:
-        """Le bot se déconnecte du salon vocal
-        
-        Args:
-            ctx: (commands.Context): Contexte de la commande
-        """
-        if self.bot.voice_clients:
-            await self.bot.voice_clients
    
+    @commands.Cog.listener(name="on_voice_state_update")
+    async def anti_farm_mute(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+        """Annule la prise en compte du temps pour quelqu'un qui se mute en voc
 
+        Args:
+            member (discord.Member): Membre
+            before (discord.VoiceState): État vocal avant la connexion
+            after (discord.VoiceState): État vocal après la connexion
+        """
+        # Vérification que le membre n'a pas changé de vocal
+        if after.channel != before.channel:
+            return
+            
+        serveur = member.guild
+        # Si le membre se mute
+        if member.voice.self_mute:
+            await self.on_vocale_leave(member, before, after)
+            self.voice_time_counter[member.id, serveur.name] = "muted"
+            logging.info(f"{serveur.name}: {member.display_name} viens de se mute")
+                
+        # Si le membre se démute
+        if not member.voice.self_mute and self.voice_time_counter[member.id, serveur.name] == "muted": 
+            self.voice_time_counter[member.id, serveur.name] = time.perf_counter()
+            logging.info(f"{serveur.name}: {member.display_name} viens de se démute")
     
-    # def actual_channel(self, server: discord.Guild) -> discord.VoiceProtocol:
-    #     for voice_client in self.bot.voice_clients:
-    #         if voice_client.channel.client == server:
-    #             return guild
     
     def voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
         """Check si le salon ne contient qu'un seul membre non bot

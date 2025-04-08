@@ -15,7 +15,7 @@ import logging
 
 logging.basicConfig(
     level=logging.INFO,  # Niveau de logging
-    format='\033[1m%(asctime)s\033[0m  [\033[1m%(levelname)s\033[0m]  %(message)s',  # Format du message
+    format='\033[90m\033[1m%(asctime)s  [%(levelname)s]\033[0m  %(message)s',  # Format du message
     datefmt='%Y-%m-%d %H:%M:%S'  # Format de la date et heure
 )
 
@@ -37,7 +37,8 @@ async def load_all_extensions(bot: commands.Bot):
                 await bot.load_extension(f"plugins.{extention}.main")
                 logging.info(f"Extension {extention} chargée")
             except Exception as error:
-                logging.error(f"Un problème est survenu lors du chargement de l'extension {extention}\n{error}")
+                logging.error(error)
+                
         
 async def connect_to_db()->dict[str, aiosqlite.Connection]:
     """Connecte le bot aux bases de données
@@ -45,7 +46,6 @@ async def connect_to_db()->dict[str, aiosqlite.Connection]:
     Returns:
         list[aiosqlite.Connection]: liste des connexions aux bases de données
     """
-    logging.info("Connection aux bases de données")
     connections = {}
     for server_db in glob.glob(join(parent_folder,'databases','**')):
         server_name = server_db.split('/')[-1][:-7]
