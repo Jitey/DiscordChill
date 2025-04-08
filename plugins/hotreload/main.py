@@ -101,7 +101,7 @@ class HotReload(commands.Cog):
             except commands.ExtensionNotLoaded:
                 continue
             else:
-                print(f"Reloaded extension: {extension.split('.')[1]}")
+                logging.info(f"Reloaded extension: {extension.split('.')[1]}")
             finally:
                 self.last_modified_time[extension] = time
 
@@ -124,7 +124,7 @@ class HotReload(commands.Cog):
             except commands.ExtensionNotLoaded:
                 continue
             else:
-                print(f"Loaded extension: {extension.split('.')[1]}")
+                logging.info(f"Loaded extension: {extension.split('.')[1]}")
             finally:
                 self.last_modified_time[extension] = time
 

@@ -482,7 +482,7 @@ class Rank(commands.Cog):
         member = self.bot.get_user(reaction.user_id)
         
         # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
-        if profile := await self.get_member_stats(member.id):
+        if profile := await self.get_member_stats(member):
             await self.on_message_xp(profile, gain=-1/5)
 
         else:
@@ -569,7 +569,7 @@ class Rank(commands.Cog):
         """Renvoie les stats d'un membre
 
         Args:
-            member_id (int): Id du membre
+            member_id (int): Membre
 
         Returns:
             XpProfile: Stats du membre

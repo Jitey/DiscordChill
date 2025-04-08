@@ -8,11 +8,7 @@ import json
 
 from dataclasses import dataclass
 import aiosqlite
-import time
-import math
-from PIL import Image, ImageDraw
-from io import BytesIO
-from datetime import datetime as dt, timedelta
+
 
 import traceback
 import logging

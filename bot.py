@@ -16,8 +16,8 @@ import logging
 
 class ColoredFormatter(logging.Formatter):
     COLORS = {
-        "DEBUG": "\033[94m",  # Bleu
-        "INFO": "\033[92m",   # Vert
+        "DEBUG": "\033[92m",  # Vert
+        "INFO": "\033[94m",   # Bleu
         "WARNING": "\033[93m",  # Jaune
         "ERROR": "\033[91m",  # Rouge
         "CRITICAL": "\033[95m",  # Magenta
@@ -42,45 +42,19 @@ logging.basicConfig(
     handlers=[handler]
 )
 
-
-separator = '\\' if system() == 'Windows' else '/'
-parent_folder = Path(__file__).resolve().parent
-load_dotenv(dotenv_path=join(parent_folder,".env"))
-
-
+# env const
+SEPARATOR = '\\' if system() == 'Windows' else '/'
+PARENT_FOLDER = Path(__file__).resolve().parent
+load_dotenv(dotenv_path=join(PARENT_FOLDER,".env"))
 
 
+
+# Discord const
 PREFIX = '+'
-
 IGNORE_EXTENSIONS = ['ping', 'dashboard']
 DEV_IDS = [306081415643004928]
 
-
-async def load_all_extensions(bot: commands.Bot):
-    for plugin in glob.glob(join(parent_folder,"plugins","**")): 
-        extention = plugin.split(separator)[-1]
-        if extention not in IGNORE_EXTENSIONS:
-            try:
-                await bot.load_extension(f"plugins.{extention}.main")
-                logging.info(f"Extension {extention} chargée")
-            except Exception as error:
-                logging.error(error)
-                
-        
-async def connect_to_db()->dict[str, aiosqlite.Connection]:
-    """Connecte le bot aux bases de données
-
-    Returns:
-        list[aiosqlite.Connection]: liste des connexions aux bases de données
-    """
-    connections = {}
-    for server_db in glob.glob(join(parent_folder,'databases','**')):
-        server_name = server_db.split('/')[-1][:-7]
-        logging.info(f"Connection à la base de données {server_name}")
-        connection = await aiosqlite.connect(server_db)
-        connections[server_name] = connection
-    
-    return connections
+ 
         
 
 
@@ -92,28 +66,52 @@ class ChillBot(commands.Bot):
     
     
     async def setup_hook(self) -> None:
-        self.connections = await connect_to_db()
+        self.connections = await self.connect_to_db()
         for connection in self.connections.values():
             await self.create_table(connection)
         
-        await load_all_extensions(self)
+        await self.load_all_extensions()
         synced = await self.tree.sync()
-        print(f"{len(synced)} commandes synchroisées")
+        logging.info(f"{len(synced)} commandes synchroisées")
 
-    
     async def on_ready(self) -> None:
         activity = discord.CustomActivity("En train de chill")
         await self.change_presence(status=discord.Status.online, activity=activity)
         
-        print(f'Connecté en tant que {self.user.name}')
+        logging.info(f'Connecté en tant que {self.user.name}')
     
     
-    async def create_db(self, server: discord.Guild)->None:
-        connection = await aiosqlite.connect(join(parent_folder,'databases',f'{server.name}.sqlite'))
+    async def load_all_extensions(self):
+        for plugin in glob.glob(join(PARENT_FOLDER,"plugins","**")): 
+            extention = plugin.split(SEPARATOR)[-1]
+            if extention not in IGNORE_EXTENSIONS:
+                try:
+                    await self.load_extension(f"plugins.{extention}.main")
+                    logging.info(f"Extension {extention} chargée")
+                except Exception as error:
+                    logging.error(error)
+    
+    async def connect_to_db(self) -> dict[str, aiosqlite.Connection]:
+        """Connecte le bot aux bases de données
+
+        Returns:
+            list[aiosqlite.Connection]: liste des connexions aux bases de données
+        """
+        connections = {}
+        for server_db in glob.glob(join(PARENT_FOLDER,'databases','**')):
+            server_name = server_db.split(SEPARATOR)[-1][:-7]
+            logging.info(f"Connection à la BDD {server_name}")
+            connection = await aiosqlite.connect(server_db)
+            connections[server_name] = connection
+        
+        return connections
+
+    async def create_db(self, server: discord.Guild) -> None:
+        connection = await aiosqlite.connect(join(PARENT_FOLDER,'databases',f'{server.name}.sqlite'))
         await self.create_table(connection)
         self.connections[server.name] = connection
     
-    async def create_table(self, connection: aiosqlite.Connection)->None:
+    async def create_table(self, connection: aiosqlite.Connection) -> None:
         req = "CREATE TABLE IF NOT EXISTS Rank (id INTEGER PRIMARY KEY, name str, msg int, xp int, lvl int, rang int, add_xp_counter int, remove_xp_counter int, added_xp int, removed_xp int)"
         await connection.execute(req)
         await connection.commit()   
@@ -123,7 +121,7 @@ class ChillBot(commands.Bot):
         await connection.commit()   
         
     @commands.hybrid_command(name='reload_db')
-    async def reload_db(self, ctx: commands.Context)->None:
+    async def reload_db(self, ctx: commands.Context) -> None:
         """Recharge la base de données du serveur
 
         Args:
@@ -136,21 +134,21 @@ class ChillBot(commands.Bot):
 
             # On recharge la base de données
             logging.info(f"Reloading database for {server}")
-            self.connections[server] = await aiosqlite.connect(join(parent_folder,'databases',f'{server}.sqlite'))
+            self.connections[server] = await aiosqlite.connect(join(PARENT_FOLDER,'databases',f'{server}.sqlite'))
             await self.create_table(self.connections[server])
             await ctx.reply(f"Base de données {server} rechargée")
         else:
             ctx.send("Tu n'as pas la permission pour ça", ephemeral=True)
     
     
-    async def send_ctx_error(self, ctx: commands.Context, error: Exception)->discord.Message:
+    async def send_ctx_error(self, ctx: commands.Context, error: Exception) -> discord.Message:
         embed = discord.Embed(
                         title=f"{type(error).__name__}",
                         description=error,
                     )
         return await ctx.reply(embed=embed, mention_author=False)
 
-    async def send_interaction_error(self, interaction: discord.Interaction, error: Exception)->discord.Message:
+    async def send_interaction_error(self, interaction: discord.Interaction, error: Exception) -> discord.Message:
         embed = discord.Embed(
                         title=f"{type(error).__name__}",
                         description=error,

@@ -296,7 +296,7 @@ class LeaderboardView(discord.ui.View):
 
 
 class Vocal(commands.Cog):
-    def __init__(self, bot: commands.Bot, connections: dict[str, aiosqlite.Connection])->None:
+    def __init__(self, bot: commands.Bot, connections: dict[str, aiosqlite.Connection]) -> None:
         self.bot = bot
         self.connections = connections
         self.channels = self.load_channels()
@@ -308,14 +308,14 @@ class Vocal(commands.Cog):
         
     
     @commands.Cog.listener(name="on_ready")
-    async def init_vocal(self):
+    async def init_vocal(self) -> None:
         """Comme un __post_init__ mais sur l'event on_ready"""
         self.channels = self.load_json('channels')
 
 
 
     @commands.hybrid_command(name='add_time')
-    async def add_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->bool:
+    async def add_time(self, ctx: commands.Context, member_target: discord.Member, amout: int) -> bool:
         """Ajoute de l'xp à un membre
 
         Args:
@@ -343,7 +343,7 @@ class Vocal(commands.Cog):
 
     
     @commands.hybrid_command(name='remove_time')
-    async def remove_time(self, ctx: commands.Context, member_target: discord.Member, amout: int)->bool:
+    async def remove_time(self, ctx: commands.Context, member_target: discord.Member, amout: int) -> bool:
         """Retire de l'xp à un membre
 
         Args:
@@ -371,7 +371,7 @@ class Vocal(commands.Cog):
 
     
     @commands.hybrid_command(name='reset_time')
-    async def reset_time(self, ctx: commands.Context, member_target: discord.Member)->bool:
+    async def reset_time(self, ctx: commands.Context, member_target: discord.Member) -> bool:
         """Remet à 0 l'xp du membre
 
         Args:
@@ -392,7 +392,7 @@ class Vocal(commands.Cog):
 
 
     @commands.hybrid_command(name='vrang')
-    async def rang(self, ctx: commands.Context, member: discord.Member=None)->None:
+    async def rang(self, ctx: commands.Context, member: discord.Member=None) -> None:
         """Affiche les infos relative au membre
 
         Args:
@@ -435,7 +435,7 @@ class Vocal(commands.Cog):
 
 
     @commands.hybrid_command(name='vleaderboard')
-    async def leaderboard(self, ctx: commands.Context)->discord.Message:
+    async def leaderboard(self, ctx: commands.Context) -> discord.Message:
         """Affiche les membres du classement 5 par 5
 
         Args:
@@ -462,7 +462,7 @@ class Vocal(commands.Cog):
 
 
     @commands.Cog.listener(name="on_voice_state_update")
-    async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def create_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """Créer un salon vocal temporaire à la connexion dans '➕ Créer ton salon'
 
         Args:
@@ -486,7 +486,7 @@ class Vocal(commands.Cog):
         
         
     @commands.Cog.listener(name="on_voice_state_update")
-    async def end_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def end_your_channel(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """Supprime un channel vocal temporaire après deconnexion de tout les participants
 
         Args:
@@ -507,7 +507,7 @@ class Vocal(commands.Cog):
    
    
     @commands.Cog.listener(name="on_voice_state_update")
-    async def on_vocale_join(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def on_vocale_join(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """Marque le début de la connection vocal
 
         Args:
@@ -524,7 +524,7 @@ class Vocal(commands.Cog):
         try:
             # Si le membre viens de se connecter
             if not before.channel or (afk_channel and before.channel.id == afk_channel.id):
-                logging.info(f"{serveur.name}: {member.display_name} viens de se connecter à {after.channel.name}")
+                logging.info(f"{serveur.name} ({after.channel.name}): {member.display_name} viens de se connecter")
                 # Si il n'est pas seul dans le channel
                 if len(after.channel.members) >= 2:
                     self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
@@ -534,7 +534,7 @@ class Vocal(commands.Cog):
     
     
     @commands.Cog.listener(name="on_voice_state_update")
-    async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """Compte le temps passé en vocal et reset le timer du joueur
 
         Args:
@@ -551,7 +551,7 @@ class Vocal(commands.Cog):
         try:
             # Si le membre viens de se déconnecter
             if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
-                logging.info(f"{serveur.name}: {member.display_name} viens de se déconnecter de {before.channel.name}")
+                logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
                 tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
                 # Si le mebre était afk
                 if afk_channel and before.channel.id == afk_channel.id:
@@ -559,7 +559,7 @@ class Vocal(commands.Cog):
 
                 if profile := await self.get_member_stats(member):
                     await self.on_vocal_xp(serveur, profile, *tps)
-                    logging.info(f"{member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
+                    logging.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
                     self.voice_time_counter[member.name, serveur.name] = None
                 else:
                     await self.create_vocal_profile(member)
@@ -572,7 +572,7 @@ class Vocal(commands.Cog):
    
    
     @commands.Cog.listener(name="on_voice_state_update")
-    async def anti_farm_alone(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def anti_farm_alone(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """Annule la prise en compte du temps pour quelqu'un qui reste seul dans un channel
 
         Args:
@@ -610,7 +610,7 @@ class Vocal(commands.Cog):
     
    
     @commands.Cog.listener(name="on_voice_state_update")
-    async def anti_farm_mute(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState)->None:
+    async def anti_farm_mute(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
         """Annule la prise en compte du temps pour quelqu'un qui se mute en voc
 
         Args:
@@ -627,12 +627,12 @@ class Vocal(commands.Cog):
         if member.voice.self_mute:
             await self.on_vocale_leave(member, before, after)
             self.voice_time_counter[member.name, serveur.name] = "muted"
-            logging.info(f"{serveur.name}: {member.display_name} viens de se mute")
+            logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se mute")
                 
         # Si le membre se démute
         if not member.voice.self_mute and self.voice_time_counter[member.name, serveur.name] == "muted": 
             self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
-            logging.info(f"{serveur.name}: {member.display_name} viens de se démute")
+            logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se démute")
     
     
     def voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
@@ -657,7 +657,7 @@ class Vocal(commands.Cog):
         """
         return sum(int(not participant.bot) for participant in channel.members) > 1
 
-    async def manage_xp(self, serveur: discord.Guild, action: str, member: discord.Member, amount: int)->None:
+    async def manage_xp(self, action: str, member: discord.Member, amount: int) -> None:
         """Ajoute ou retire la quantité d'xp donné
 
         Args:
@@ -666,7 +666,7 @@ class Vocal(commands.Cog):
             amount (int): Quantité d'xp
         """
         connection = self.connections[member.guild.name]
-        stat = VocalProfile(*await self.get_member_stats(member.id))
+        stat = VocalProfile(*await self.get_member_stats(member))
         
         if action == 'add':
             stat.time_spend += amount
@@ -684,7 +684,7 @@ class Vocal(commands.Cog):
 
         await self.update_classement()
     
-    async def on_vocal_xp(self, serveur: discord.Guild, stat: tuple | VocalProfile, time_spend: int, afk: int)->None:
+    async def on_vocal_xp(self, serveur: discord.Guild, stat: tuple | VocalProfile, time_spend: int, afk: int) -> None:
         """Ajoute de l'xp au membre et regard si il a level up
 
         Args:
@@ -709,7 +709,7 @@ class Vocal(commands.Cog):
 
         await self.update_classement(serveur)
     
-    async def update_classement(self, serveur: discord.Guild)->None:
+    async def update_classement(self, serveur: discord.Guild) -> None:
         """Range par odre décroissant de temps passé en vocal les membrs dans la bdd
         """
         connection = self.connections[serveur.name]
@@ -717,7 +717,7 @@ class Vocal(commands.Cog):
         await connection.execute(req)
         await connection.commit()
     
-    async def create_vocal_profile(self, member: discord.Member)->None:
+    async def create_vocal_profile(self, member: discord.Member) -> None:
         """Ajoutes une ligne à la base de donnée pour le membre
 
         Args:
@@ -732,7 +732,7 @@ class Vocal(commands.Cog):
         await connection.execute(req, (member.id, member.name, 0, 0, 0))
         await connection.commit()
 
-    async def get_member_stats(self, member: discord.Member)->VocalProfile:
+    async def get_member_stats(self, member: discord.Member) -> VocalProfile:
         """Renvoie les stats d'un membre
 
         Args:
@@ -776,6 +776,7 @@ class Vocal(commands.Cog):
         else:
             return  tamp // 5
 
+
     def load_channels(self) -> dict[str, dict[str, discord.TextChannel|discord.VoiceChannel]]:
         """Renvoie un dictionnaire contenant les channels du serveur avec comme clé leur nom
 
@@ -790,8 +791,7 @@ class Vocal(commands.Cog):
             for server_name, server_channels in json_file.items()
         }
     
-   
-    def load_json(self, file: str)->dict:
+    def load_json(self, file: str) -> dict:
         """"Récupère les données du fichier json
 
         Args:
