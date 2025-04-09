@@ -79,7 +79,7 @@ class HotReload(commands.Cog):
                     with open(f"{PARENT_FOLDER}/save.json", 'w') as f:
                         json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
                         
-                    logging.info(f"Pull réussi: {last_commit.committed_message}")
+                    logging.info(f"Pull réussi: {last_commit.message}")
             except git.GitCommandError as e:
                 logging.info(f"Erreur lors du pull : {e}")
                 
