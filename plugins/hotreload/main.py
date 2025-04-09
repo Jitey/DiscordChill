@@ -7,9 +7,12 @@ from discord.ext import commands, tasks
 from bot import ChillBot
 
 import git
+from git import Repo
+from git.cmd import Git
 import json
 from datetime import datetime as dt
 
+import traceback
 import logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 from icecream import ic
@@ -66,26 +69,16 @@ class HotReload(commands.Cog):
             repository_path (str, optional): Chemin local du répertoire
         """
         try:
-            repo = git.Repo(repository_path)
+            repo = Repo(repository_path)
+            last_local_commit = repo.head.commit
+            last_remote_commit = repo.remotes.origin.refs['main'].commit
             
-            with open(f"{PARENT_FOLDER}/save.json", 'r') as f:
-                last_commit_saved_str = json.load(f)['last_commit']
-                last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
-
-            try:
-                last_commit = repo.head.commit
-                if last_commit.committed_datetime > last_commit_saved:
-                    repo.git.pull() 
-                    with open(f"{PARENT_FOLDER}/save.json", 'w') as f:
-                        json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
-                        
-                    logging.info(f"Pull réussi: {last_commit.message}")
-            except git.GitCommandError as e:
-                logging.info(f"Erreur lors du pull : {e}")
-                
-        except Exception as e:
-            logging.info(e.__class__)
-            logging.error(e)
+            if last_remote_commit.committed_datetime > last_local_commit.committed_datetime:
+                repo.remotes.origin.pull()
+                    
+                logging.info(f"Pull: {last_remote_commit.message[:-1]}")
+        except git.GitCommandError as e:
+            logging.warning(f"Erreur lors du pull : {e}")
 
 
                 
