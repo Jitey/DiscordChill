@@ -535,7 +535,7 @@ class Vocal(commands.Cog):
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
-        """Compte le temps passé en vocal et reset le timer du joueur
+        """Marque la fin de la connection vocal
 
         Args:
             member (discord.Member): Memnre
@@ -552,23 +552,10 @@ class Vocal(commands.Cog):
             # Si le membre viens de se déconnecter
             if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
                 logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
-                tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
-                # Si le mebre était afk
-                if afk_channel and before.channel.id == afk_channel.id:
-                    tps.reverse()
-
-                if profile := await self.get_member_stats(member):
-                    await self.on_vocal_xp(serveur, profile, *tps)
-                    logging.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
-                    self.voice_time_counter[member.name, serveur.name] = None
-                else:
-                    await self.create_vocal_profile(member)
-                    await self.on_vocale_leave(member, before, after)
+                await self.stop_voice_time_counter(member, before)
 
         except (AttributeError, TypeError) as error:
             logging.error(traceback.format_exc())
-        except KeyError:
-            pass
    
    
     @commands.Cog.listener(name="on_voice_state_update")
@@ -593,7 +580,7 @@ class Vocal(commands.Cog):
                         last_member = participant
                         break
                     
-                await self.on_vocale_leave(last_member, before, after)
+                await self.stop_voice_time_counter(last_member, before)
         
         # Sur une connection
         if before.channel is None: 
@@ -625,7 +612,7 @@ class Vocal(commands.Cog):
         serveur = member.guild
         # Si le membre se mute
         if member.voice.self_mute:
-            await self.on_vocale_leave(member, before, after)
+            await self.stop_voice_time_counter(member, before)
             self.voice_time_counter[member.name, serveur.name] = "muted"
             logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se mute")
                 
@@ -635,6 +622,36 @@ class Vocal(commands.Cog):
             logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se démute")
     
     
+    
+    async def stop_voice_time_counter(self, member: discord.Member, before: discord.VoiceState) -> None:
+        """Compte le temps passé en vocal et reset le timer du joueur
+
+        Args:
+            member (discord.Member): Membre
+            before (discord.VoiceState): État vocal avant la connexion
+        """
+        serveur = member.guild
+        afk_channel = member.guild.afk_channel
+
+        tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
+        # Si le mebre était afk
+        if afk_channel and before.channel.id == afk_channel.id:
+            tps.reverse()
+
+        try:
+            # Met à jour le temps passé en vocal
+            if profile := await self.get_member_stats(member):
+                await self.on_vocal_xp(serveur, profile, *tps)
+                logging.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
+                self.voice_time_counter[member.name, serveur.name] = None
+
+            # Créer un profil vocal si il n'existe pas
+            else:
+                await self.create_vocal_profile(member)
+                await self.stop_voice_time_counter(member, before)
+        except KeyError:
+            pass
+        
     def voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
         """Check si le salon ne contient qu'un seul membre non bot
 
