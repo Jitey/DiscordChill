@@ -1,12 +1,11 @@
 # Python 3.11
 
 # |----------Module d'environnement-----------|
-from os import getenv
+from os import getenv, sep
 from os.path import join
 from dotenv import load_dotenv
 from pathlib import Path
 import glob
-from platform  import system
 # |----------Module du projet-----------|
 import discord
 from discord.ext import commands
@@ -43,7 +42,6 @@ logging.basicConfig(
 )
 
 # env const
-SEPARATOR = '\\' if system() == 'Windows' else '/'
 PARENT_FOLDER = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=join(PARENT_FOLDER,".env"))
 
@@ -51,7 +49,7 @@ load_dotenv(dotenv_path=join(PARENT_FOLDER,".env"))
 
 # Discord const
 PREFIX = '+'
-IGNORE_EXTENSIONS = ['ping', 'dashboard']
+IGNORED_EXTENSIONS = ['ping', 'dashboard']
 DEV_IDS = [306081415643004928]
 
  
@@ -61,7 +59,7 @@ DEV_IDS = [306081415643004928]
 class ChillBot(commands.Bot):
     def __init__(self) -> None:
         super().__init__(command_prefix=PREFIX, intents=discord.Intents.all())
-        self.IGNORE_EXTENSIONS = IGNORE_EXTENSIONS
+        self.IGNORED_EXTENSIONS = IGNORED_EXTENSIONS
         self.DEV_IDS = DEV_IDS
     
     
@@ -83,8 +81,8 @@ class ChillBot(commands.Bot):
     
     async def load_all_extensions(self):
         for plugin in glob.glob(join(PARENT_FOLDER,"plugins","**")): 
-            extention = plugin.split(SEPARATOR)[-1]
-            if extention not in IGNORE_EXTENSIONS:
+            extention = plugin.split(sep)[-1]
+            if extention not in self.IGNORED_EXTENSIONS:
                 try:
                     await self.load_extension(f"plugins.{extention}.main")
                     logging.info(f"Extension {extention} chargée")
@@ -99,7 +97,7 @@ class ChillBot(commands.Bot):
         """
         connections = {}
         for server_db in glob.glob(join(PARENT_FOLDER,'databases','**')):
-            server_name = server_db.split(SEPARATOR)[-1][:-7]
+            server_name = server_db.split(sep)[-1][:-7]
             logging.info(f"Connection à la BDD {server_name}")
             connection = await aiosqlite.connect(server_db)
             connections[server_name] = connection

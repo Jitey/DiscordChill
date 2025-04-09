@@ -4,6 +4,7 @@ import glob
 
 import discord
 from discord.ext import commands, tasks
+from bot import ChillBot
 
 import git
 import json
@@ -17,13 +18,22 @@ from icecream import ic
 
 IGNORE_EXTENSIONS = ['ping','dashboard']
 plugins_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
-parent_folder = pathlib.Path(__file__).resolve().parent
-GITHUB_REPOSITORY = parent_folder.parent.parent
+PARENT_FOLDER = pathlib.Path(__file__).resolve().parent
+GITHUB_REPOSITORY = PARENT_FOLDER.parent.parent
 
 
 
 
 def path_from_extension(extension: str) -> pathlib.Path:
+    """Convertit une extension de module en un chemin vers le fichier main
+    Par exemple, 'plugins.hotreload.main' devient 'plugins/hotreload/main.py'
+
+    Args:
+        extension (str): Le nom de l'extension à convertir
+
+    Returns:
+        pathlib.Path: Le chemin vers le fichier main de l'extension
+    """
     return pathlib.Path(extension.replace('.', os.sep)+'.py')
 
 
@@ -33,7 +43,7 @@ class HotReload(commands.Cog):
     Cog for reloading extensions as soon as the file is edited
     """
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: ChillBot):
         self.bot = bot
         self.hot_reload_loop.start()
         self.load_new_cogs_loop.start()
@@ -58,18 +68,18 @@ class HotReload(commands.Cog):
         try:
             repo = git.Repo(repository_path)
             
-            with open(f"{parent_folder}/save.json", 'r') as f:
+            with open(f"{PARENT_FOLDER}/save.json", 'r') as f:
                 last_commit_saved_str = json.load(f)['last_commit']
-            last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
-            
+                last_commit_saved = dt.strptime(last_commit_saved_str, "%Y-%m-%d %H:%M:%S%z")
+
             try:
                 last_commit = repo.head.commit
                 if last_commit.committed_datetime > last_commit_saved:
                     repo.git.pull() 
-                    with open(f"{parent_folder}/save.json", 'w') as f:
+                    with open(f"{PARENT_FOLDER}/save.json", 'w') as f:
                         json.dump({'last_commit': f"{last_commit.committed_datetime}"}, f, indent=2)
                         
-                    logging.info("Pull réussi")
+                    logging.info("Pull réussi: {last_commit.committed_message}")
             except git.GitCommandError as e:
                 logging.info(f"Erreur lors du pull : {e}")
                 
@@ -83,7 +93,7 @@ class HotReload(commands.Cog):
     async def hot_reload_loop(self):
         for extension in list(self.bot.extensions.keys()):
             extension_name = extension.split('.')[1]
-            if extension_name in self.bot.IGNORE_EXTENSIONS:
+            if extension_name in self.bot.IGNORED_EXTENSIONS:
                 continue
             path = path_from_extension(extension)
             time = os.path.getmtime(path)
@@ -114,7 +124,7 @@ class HotReload(commands.Cog):
             time = os.path.getmtime(path)
             
             extension_name = extension.split('.')[1]
-            if extension in self.bot.extensions or extension_name in self.bot.IGNORE_EXTENSIONS:
+            if extension in self.bot.extensions or extension_name in self.bot.IGNORED_EXTENSIONS:
                 continue
             
             try:
@@ -129,12 +139,6 @@ class HotReload(commands.Cog):
                 self.last_modified_time[extension] = time
 
 
-    @pull_from_github.before_loop
-    async def demarage(self):
-        with open(f"{parent_folder}/save.json", 'r') as f:
-            self.last_commit = json.load(f)['last_commit']
-
-
     @load_new_cogs_loop.before_loop
     @hot_reload_loop.before_loop
     async def cache_last_modified_time(self):
@@ -142,7 +146,7 @@ class HotReload(commands.Cog):
         self.last_modified_time = {}
         # Mapping = {extension: timestamp}
         for extension in self.bot.extensions.keys():
-            if extension in self.bot.IGNORE_EXTENSIONS:
+            if extension in self.bot.IGNORED_EXTENSIONS:
                 continue
             path = path_from_extension(extension)
             time = os.path.getmtime(path)
