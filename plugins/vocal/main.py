@@ -552,7 +552,8 @@ class Vocal(commands.Cog):
             # Si le membre viens de se déconnecter
             if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
                 logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
-                await self.stop_voice_time_counter(member, before)
+                if type(self.voice_time_counter[member.name, serveur.name]) == float:
+                    await self.stop_voice_time_counter(member, before)
 
         except (AttributeError, TypeError) as error:
             logging.error(traceback.format_exc())
