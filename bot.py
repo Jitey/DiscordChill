@@ -30,7 +30,7 @@ class ColoredFormatter(logging.Formatter):
 
 # Appliquez le gestionnaire personnalisé
 formatter = ColoredFormatter(
-    fmt='\033[90m\033[1m%(asctime)s\033[0m %(levelname)s   %(message)s',
+    fmt='\033[90m\033[1m%(asctime)s\033[0m \033[1m%(levelname)s\033[0m   %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 handler = logging.StreamHandler()
