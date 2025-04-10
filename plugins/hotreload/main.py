@@ -67,6 +67,7 @@ class HotReload(commands.Cog):
         """
         try:
             repo = Repo(repository_path)
+            repo.remotes.origin.fetch()
             last_local_commit = repo.head.commit
             last_remote_commit = repo.remotes.origin.refs['main'].commit
             
