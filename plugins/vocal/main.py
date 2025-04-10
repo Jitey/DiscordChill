@@ -552,8 +552,7 @@ class Vocal(commands.Cog):
             # Si le membre viens de se déconnecter
             if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
                 logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
-                if type(self.voice_time_counter[member.name, serveur.name]) == float:
-                    await self.stop_voice_time_counter(member, before)
+                await self.stop_voice_time_counter(member, before)
 
         except (AttributeError, TypeError) as error:
             logging.error(traceback.format_exc())
@@ -634,12 +633,12 @@ class Vocal(commands.Cog):
         serveur = member.guild
         afk_channel = member.guild.afk_channel
 
-        tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
-        # Si le mebre était afk
-        if afk_channel and before.channel.id == afk_channel.id:
-            tps.reverse()
-
         try:
+            tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
+            # Si le mebre était afk
+            if afk_channel and before.channel.id == afk_channel.id:
+                tps.reverse()
+
             # Met à jour le temps passé en vocal
             if profile := await self.get_member_stats(member):
                 await self.on_vocal_xp(serveur, profile, *tps)
@@ -650,7 +649,7 @@ class Vocal(commands.Cog):
             else:
                 await self.create_vocal_profile(member)
                 await self.stop_voice_time_counter(member, before)
-        except KeyError:
+        except (KeyError, TypeError):
             pass
         
     def voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:

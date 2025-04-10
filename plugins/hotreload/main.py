@@ -8,11 +8,8 @@ from bot import ChillBot
 
 import git
 from git import Repo
-from git.cmd import Git
-import json
-from datetime import datetime as dt
 
-import traceback
+
 import logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 from icecream import ic
