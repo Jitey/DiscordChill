@@ -612,14 +612,14 @@ class Vocal(commands.Cog):
         serveur = member.guild
         # Si le membre se mute
         if member.voice.self_mute:
+            logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se mute")
             await self.stop_voice_time_counter(member, before)
             self.voice_time_counter[member.name, serveur.name] = "muted"
-            logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se mute")
                 
         # Si le membre se démute
         if not member.voice.self_mute and self.voice_time_counter[member.name, serveur.name] == "muted": 
-            self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
             logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se démute")
+            self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
     
     
     
@@ -634,6 +634,7 @@ class Vocal(commands.Cog):
         afk_channel = member.guild.afk_channel
 
         try:
+            # Temps passé dans le vocal en seconde
             tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
             # Si le mebre était afk
             if afk_channel and before.channel.id == afk_channel.id:
