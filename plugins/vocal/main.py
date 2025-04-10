@@ -310,7 +310,7 @@ class Vocal(commands.Cog):
     @commands.Cog.listener(name="on_ready")
     async def init_vocal(self) -> None:
         """Comme un __post_init__ mais sur l'event on_ready"""
-        self.channels = self.load_json('channels')
+        self.channels = self.load_channels()
 
 
 
