@@ -282,6 +282,7 @@ class Rank(commands.Cog):
         self.connections = connections
         self.last_message_time = {}
         self.channels = self.load_channels()
+        self.ignored_channels = self.load_json('ignored_channels')
         self.user_blocked = self.load_json('blocked')
         
 
@@ -443,7 +444,7 @@ class Rank(commands.Cog):
         current_time = dt.now()
 
         # Ignore les channels choisit
-        if message.channel.id in self.channels[serveur.name]['ignore'].values():
+        if message.channel.id in self.ignored_channels.values():
             return
 
         # Ignore les comptes bloqués et les bots
