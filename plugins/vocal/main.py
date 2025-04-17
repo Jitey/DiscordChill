@@ -773,7 +773,7 @@ class Vocal(commands.Cog):
         req = "UPDATE Vocal SET time=?, afk=?, lvl=? WHERE id==?"
         
         if stat.check_lvl():
-            channel: discord.TextChannel = self.channels['rank']
+            channel: discord.TextChannel = self.channels[serveur.name]['rank']
             await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
         
         await connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))
