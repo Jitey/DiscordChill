@@ -310,7 +310,7 @@ class Vocal(commands.Cog):
     @commands.Cog.listener(name="on_ready")
     async def init_vocal(self) -> None:
         """Comme un __post_init__ mais sur l'event on_ready"""
-        self.channels = self.load_json('channels')
+        self.channels = self.load_channels()
 
 
 
@@ -624,16 +624,17 @@ class Vocal(commands.Cog):
             return
             
         serveur = member.guild
+        channel = member.voice.channel
         # Si le membre se mute
         if member.voice.self_mute:
+            logging.info(f"{serveur.name} ({channel.name}): {member.display_name} viens de se mute")
             await self.stop_voice_time_counter(member, before)
             self.voice_time_counter[member.name, serveur.name] = "muted"
-            logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se mute")
                 
         # Si le membre se démute
-        if not member.voice.self_mute and self.voice_time_counter[member.name, serveur.name] == "muted": 
+        if not member.voice.self_mute and self.voice_time_counter[member.name, serveur.name] == "muted" and len(channel.members) >= 2: 
+            logging.info(f"{serveur.name} ({channel.name}): {member.display_name} viens de se démute")
             self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
-            logging.info(f"{serveur.name} ({member.voice.channel.name}): {member.display_name} viens de se démute")
     
     
     

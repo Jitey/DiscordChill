@@ -281,9 +281,16 @@ class Rank(commands.Cog):
         self.bot = bot
         self.connections = connections
         self.last_message_time = {}
-        self.channels: dict[str, dict[str, int]] = self.load_json('channels')
+        self.channels = self.load_channels()
+        self.ignored_channels = self.load_json('ignored_channels')
         self.user_blocked = self.load_json('blocked')
         
+
+    @commands.Cog.listener(name="on_ready")
+    async def init_vocal(self) -> None:
+        """Comme un __post_init__ mais sur l'event on_ready"""
+        self.channels = self.load_channels()
+
 
     
     @commands.hybrid_command(name='add_xp')
@@ -437,7 +444,7 @@ class Rank(commands.Cog):
         current_time = dt.now()
 
         # Ignore les channels choisit
-        if message.channel.id in self.channels[serveur.name]['ignore'].values():
+        if message.channel.id in self.ignored_channels.values():
             return
 
         # Ignore les comptes bloqués et les bots
@@ -532,7 +539,7 @@ class Rank(commands.Cog):
         stat.xp += gain*rd.randint(15,25 + 1)
         
         if stat.check_lvl():
-                channel = self.bot.get_channel(self.channels['rank'])
+                channel = self.channels[serveur.name]['rank']
                 await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} à l'écris !")
 
         res = "UPDATE Rank SET msg=?, xp=?, lvl=? WHERE id==?"
@@ -622,6 +629,20 @@ class Rank(commands.Cog):
         else:
             return  tamp // 5
    
+    def load_channels(self) -> dict[str, dict[str, discord.TextChannel|discord.VoiceChannel]]:
+        """Renvoie un dictionnaire contenant les channels du serveur avec comme clé leur nom
+
+        Returns:
+            dict[str, discord.TextChannel|discord.VoiceChannel]: dictionaire des channels
+        """
+        json_file: dict[str, dict[str, int]] = self.load_json('channels')
+        return {server_name: {
+                channel_name: self.bot.get_channel(channel_id)
+                for channel_name, channel_id in server_channels.items()
+            }
+            for server_name, server_channels in json_file.items()
+        }
+    
 
     def load_json(self, file: str)->dict:
         """"Récupère les données du fichier json
