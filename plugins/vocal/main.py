@@ -473,8 +473,9 @@ class Vocal(commands.Cog):
         serveur = member.guild
         try:
             category = discord.utils.get(serveur.categories, id=self.category[serveur.name]['voice'])
-            if after.channel.id == self.channels['main_salon']:
+            if after.channel.id == self.channels[serveur.name]['main_salon'].id:
                 uzox = self.bot.get_user(760027263046909992)
+                ic(uzox)
                 perms = discord.PermissionOverwrite()
 
                 channel = await serveur.create_voice_channel(member.display_name, category=category, overwrites={uzox: perms})
