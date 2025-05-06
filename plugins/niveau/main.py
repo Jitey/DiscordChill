@@ -444,7 +444,7 @@ class Rank(commands.Cog):
         current_time = dt.now()
 
         # Ignore les channels choisit
-        if message.channel.id in self.ignored_channels.values():
+        if message.channel.id in self.ignored_channels[message.guild.name].values():
             return
 
         # Ignore les comptes bloqués et les bots

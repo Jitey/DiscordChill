@@ -5,7 +5,8 @@ from pathlib import Path
 parent_folder = Path(__file__).resolve().parent
 import json
 import aiosqlite
-from sqlite3 import IntegrityError
+from sqlite3 import IntegrityError, OperationalError
+import logging
 
 from icecream import ic
 
@@ -33,10 +34,13 @@ class Invite(commands.Cog):
             await connection.commit()
         except IntegrityError:
             pass
+        except OperationalError:
+            logging(f"{invite.guild.name}: Erreur d'insertion dans la base de données")
         
     
     @commands.hybrid_command(name="graph")
     async def inviter_graph(self, ctx: commands.Context):
+        ic(ctx.guild.name)
         connection = self.connections[ctx.guild.name]
         embed = discord.Embed(
             title="Répartition des inviters",
@@ -45,6 +49,8 @@ class Invite(commands.Cog):
         embed.set_author(icon_url=ctx.author.avatar.url,name=ctx.author.display_name)
 
         req = "SELECT id, invite_count FROM Members WHERE invite_count > 0 ORDER BY invite_count DESC"
+        res = await connection.execute_fetchall(req)
+        ic(res)
         for rang, res in enumerate(await connection.execute_fetchall(req)):
             member_id, count = res
             member = self.bot.get_user(member_id)
