@@ -1,4 +1,4 @@
-import discord
+    import discord
 from discord.ext import commands
 
 from pathlib import Path
@@ -26,7 +26,7 @@ class Invite(commands.Cog):
             invite (discord.Invite): Invite à ajouter
         """
         connection = self.connections[invite.guild.name]
-        req = "INSERT INTO Invites (code, inviter_id, inviter_name, usage_count) VALUES (?,?,?,?)"
+        req = "INSERT INTO Invites (code, inviter_id, inviter_name, uses) VALUES (?,?,?,?)"
 
         try:
             await connection.execute(req, (invite.code, invite.inviter.id, invite.inviter.name, invite.uses))
