@@ -473,8 +473,9 @@ class Vocal(commands.Cog):
         serveur = member.guild
         try:
             category = discord.utils.get(serveur.categories, id=self.category[serveur.name]['voice'])
-            if after.channel.id == self.channels['main_salon']:
+            if after.channel.id == self.channels[serveur.name]['main_salon'].id:
                 uzox = self.bot.get_user(760027263046909992)
+                ic(uzox)
                 perms = discord.PermissionOverwrite()
 
                 channel = await serveur.create_voice_channel(member.display_name, category=category, overwrites={uzox: perms})
@@ -521,41 +522,55 @@ class Vocal(commands.Cog):
         
         serveur = member.guild
         afk_channel = serveur.afk_channel
-        try:
-            # Si le membre viens de se connecter
-            if not before.channel or (afk_channel and before.channel.id == afk_channel.id):
-                logging.info(f"{serveur.name} ({after.channel.name}): {member.display_name} viens de se connecter")
-                # Si il n'est pas seul dans le channel
-                if len(after.channel.members) >= 2:
-                    self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
-        except AttributeError as error:
-            logging.error(traceback.format_exc())
-            pass    
-    
+        # Si le membre est afk
+        if after.channel and self.is_afk(member, before, after):
+            return
+        
+        # Message de connexion
+        if (before.channel is None or self.was_afk(member, before, after)) and after.channel is not None:
+            logging.info(f"{serveur.name} ({after.channel.name}): {member.display_name} viens de se connecter")
+        else:
+            return
+        
+        # Si il n'est pas seul dans le channel
+        if len(after.channel.members) >= 2:
+            self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
+        
     
     @commands.Cog.listener(name="on_voice_state_update")
     async def on_vocale_leave(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState) -> None:
-        """Marque la fin de la connection vocal
+        """Marque la fin de la connection vocal d'un membre
 
         Args:
-            member (discord.Member): Memnre
+            member (discord.Member): Membre
             before (discord.VoiceState): État vocal avant la connexion
             after (discord.VoiceState): État vocal après la connexion
         """
         # Ignore les comptes bloqués et les bots    
         if member.id in self.user_blocked.values() or member.bot:
             return
-        
-        serveur = member.guild   
-        afk_channel = serveur.afk_channel
-        try:
-            # Si le membre viens de se déconnecter
-            if not after.channel or (afk_channel and after.channel.id == afk_channel.id):
-                logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
-                await self.stop_voice_time_counter(member, before)
 
-        except (AttributeError, TypeError) as error:
-            logging.error(traceback.format_exc())
+        # Message de déconnexion
+        if self.left_channel(member, before, after) and not self.was_afk(member, before, after):
+            serveur = member.guild   
+            afk_channel = serveur.afk_channel
+            logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
+        else:
+            return
+            
+        # Si le salon est vide (autrement dit le membre était seul ou est le dernier à se déconnecter)
+        if before.channel is None or not before.channel.members:
+            return
+        
+        # Si le membre a changé de salon (donc ne s'est pas déconnecté)
+        if after.channel and (afk_channel and after.channel.id != afk_channel.id):
+            return
+        
+        # Si le membre était muet ou afk (donc son temps n'est plus compté)
+        if afk_channel and before.channel.id == afk_channel.id:
+            return
+        
+        await self.stop_voice_time_counter(member, before)
    
    
     @commands.Cog.listener(name="on_voice_state_update")
@@ -634,26 +649,22 @@ class Vocal(commands.Cog):
         serveur = member.guild
         afk_channel = member.guild.afk_channel
 
-        try:
-            # Temps passé dans le vocal en seconde
-            tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
-            # Si le mebre était afk
-            if afk_channel and before.channel.id == afk_channel.id:
-                tps.reverse()
+        tps = [int(time.perf_counter() - self.voice_time_counter[member.name, serveur.name]) , 0]
+        # Si le mebre était afk
+        if afk_channel and before.channel.id == afk_channel.id:
+            tps.reverse()
 
-            # Met à jour le temps passé en vocal
-            if profile := await self.get_member_stats(member):
-                await self.on_vocal_xp(serveur, profile, *tps)
-                logging.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
-                self.voice_time_counter[member.name, serveur.name] = None
+        # Met à jour le temps passé en vocal
+        if profile := await self.get_member_stats(member):
+            await self.on_vocal_xp(serveur, profile, *tps)
+            logging.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
+            self.voice_time_counter[member.name, serveur.name] = None
 
-            # Créer un profil vocal si il n'existe pas
-            else:
-                await self.create_vocal_profile(member)
-                await self.stop_voice_time_counter(member, before)
-        except (KeyError, TypeError):
-            pass
-        
+        # Créer un profil vocal si il n'existe pas
+        else:
+            await self.create_vocal_profile(member)
+            await self.stop_voice_time_counter(member, before)
+
     def voice_channel_empty(self, channel: discord.VoiceChannel) -> bool:
         """Check si le salon ne contient qu'un seul membre non bot
 
@@ -675,6 +686,49 @@ class Vocal(commands.Cog):
             bool: Résultat sous forme de boléen
         """
         return sum(int(not participant.bot) for participant in channel.members) > 1
+
+    def left_channel(self, member: discord.Member, before: discord.VoiceProtocol, after: discord.VoiceProtocol) -> bool:
+        """Check si le membre s'est déconnecté du salon vocal
+
+        Args:
+            member (discord.Member): Membre
+            before (discord.VoiceChannel): État vocal avant la connexion
+            after (discord.VoiceChannel): État vocal après la connexion
+
+        Returns:
+            bool: Résultat sous forme de boléen
+        """
+        return (before.channel is not None and after.channel is None) or (before.channel != after.channel and before.channel is not None)
+
+    def is_afk(self, member: discord.Member, before: discord.VoiceProtocol, after: discord.VoiceProtocol) -> bool:
+        """Check si le membre est dans le salon afk si celui-ci existe
+
+        Args:
+            member (discord.Member): Membre
+            before (discord.VoiceChannel): État vocal avant la connexion
+            after (discord.VoiceChannel): État vocal après la connexion
+
+        Returns:
+            bool: Résultat sous forme de boléen
+        """
+        serveur = member.guild
+        afk_channel = serveur.afk_channel
+        return afk_channel and after.channel.id == afk_channel.id
+
+    def was_afk(self, member: discord.Member, before: discord.VoiceProtocol, after: discord.VoiceProtocol) -> bool:
+        """Check si le membre était dans le salon afk si celui-ci existe
+
+        Args:
+            member (discord.Member): Membre
+            before (discord.VoiceChannel): État vocal avant la connexion
+            after (discord.VoiceChannel): État vocal après la connexion
+
+        Returns:
+            bool: Résultat sous forme de boléen
+        """
+        serveur = member.guild
+        afk_channel = serveur.afk_channel
+        return afk_channel and before.channel.id == afk_channel.id
 
     async def manage_xp(self, action: str, member: discord.Member, amount: int) -> None:
         """Ajoute ou retire la quantité d'xp donné
@@ -720,7 +774,7 @@ class Vocal(commands.Cog):
         req = "UPDATE Vocal SET time=?, afk=?, lvl=? WHERE id==?"
         
         if stat.check_lvl():
-            channel: discord.TextChannel = self.channels['rank']
+            channel: discord.TextChannel = self.channels[serveur.name]['rank']
             await channel.send(f"<@{stat.id}> Tu viens de passer niveau {stat.lvl} en vocal !")
         
         await connection.execute(req, (stat.time_spend, afk, stat.lvl, stat.id))
