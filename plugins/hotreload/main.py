@@ -11,7 +11,6 @@ from git import Repo
 
 
 import logging
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 from icecream import ic
 
 
