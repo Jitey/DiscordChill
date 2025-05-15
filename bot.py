@@ -67,7 +67,7 @@ class ChillBot(commands.Bot):
     async def setup_hook(self) -> None:
         self.connections = await self.connect_to_db()
         for connection in self.connections.values():
-            await self.create_table(connection)
+            await self.create_tables(connection)
         
         await self.load_all_extensions()
         synced = await self.tree.sync()
