@@ -91,6 +91,7 @@ class ChillBot(commands.Bot):
             logging.info(f"Le serveur {guild.name} est déjà dans la base de données.")
         else:
             # Create a new database for the guild
+            logging.info(f"Ajout du serveur {guild.name} à la base de données.")
             self.create_db(guild.name)
     
     
