@@ -78,6 +78,21 @@ class ChillBot(commands.Bot):
         
         logging.info(f'Connecté en tant que {self.user.name}')
     
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        """Fonction appelée lorsque le bot rejoint un serveur.
+
+        Args:
+            guild (discord.Guild): Le serveur sur lequel le bot a été ajouté.
+        """
+        # Check if the guild is already in the database
+        list_db = glob.glob(join(self.WORKSPACE,'databases','**'))
+        if guild.name in list_db:
+            logging.info(f"Le serveur {guild.name} est déjà dans la base de données.")
+        else:
+            # Create a new database for the guild
+            logging.info(f"Ajout du serveur {guild.name} à la base de données.")
+            self.create_db(guild.name)
+    
     
     async def load_all_extensions(self):
         for plugin in glob.glob(join(PARENT_FOLDER,"plugins","**")): 
