@@ -48,7 +48,7 @@ load_dotenv(dotenv_path=join(PARENT_FOLDER,".env"))
 
 
 # Discord const
-PREFIX = '+'
+PREFIX = '='
 IGNORED_EXTENSIONS = ['ping', 'dashboard']
 DEV_IDS = [306081415643004928]
 
@@ -61,13 +61,12 @@ class ChillBot(commands.Bot):
         super().__init__(command_prefix=PREFIX, intents=discord.Intents.all())
         self.IGNORED_EXTENSIONS = IGNORED_EXTENSIONS
         self.DEV_IDS = DEV_IDS
-        self.WORKSPACE = PARENT_FOLDER
     
     
     async def setup_hook(self) -> None:
         self.connections = await self.connect_to_db()
         for connection in self.connections.values():
-            await self.create_tables(connection)
+            await self.create_table(connection)
         
         await self.load_all_extensions()
         synced = await self.tree.sync()
@@ -78,20 +77,6 @@ class ChillBot(commands.Bot):
         await self.change_presence(status=discord.Status.online, activity=activity)
         
         logging.info(f'Connecté en tant que {self.user.name}')
-    
-    async def on_guild_join(self, guild: discord.Guild) -> None:
-        """Fonction appelée lorsque le bot rejoint un serveur.
-
-        Args:
-            guild (discord.Guild): Le serveur sur lequel le bot a été ajouté.
-        """
-        # Check if the guild is already in the database
-        list_db = glob.glob(join(self.WORKSPACE,'databases','**'))
-        if guild.name in list_db:
-            logging.info(f"Le serveur {guild.name} est déjà dans la base de données.")
-        else:
-            # Create a new database for the guild
-            self.create_db(guild.name)
     
     
     async def load_all_extensions(self):
@@ -119,13 +104,12 @@ class ChillBot(commands.Bot):
         
         return connections
 
-
     async def create_db(self, server: discord.Guild) -> None:
         connection = await aiosqlite.connect(join(PARENT_FOLDER,'databases',f'{server.name}.sqlite'))
-        await self.create_tables(connection)
+        await self.create_table(connection)
         self.connections[server.name] = connection
     
-    async def create_tables(self, connection: aiosqlite.Connection) -> None:
+    async def create_table(self, connection: aiosqlite.Connection) -> None:
         req = "CREATE TABLE IF NOT EXISTS Rank (id INTEGER PRIMARY KEY, name str, msg int, xp int, lvl int, rang int, add_xp_counter int, remove_xp_counter int, added_xp int, removed_xp int)"
         await connection.execute(req)
         await connection.commit()   
@@ -134,15 +118,6 @@ class ChillBot(commands.Bot):
         await connection.execute(req)
         await connection.commit()   
         
-        req = "CREATE TABLE IF NOT EXISTS Members (id INTEGER PRIMARY KEY, name str, invited_by int, join_method str, join_date str, invite_count int)"
-        await connection.execute(req)
-        await connection.commit()   
-        
-        req = "CREATE TABLE IF NOT EXISTS Invites (code str PRIMARY KEY, inviter_id INT, inviter_name str, uses int)"
-        await connection.execute(req)
-        await connection.commit()   
-        
-    
     @commands.hybrid_command(name='reload_db')
     async def reload_db(self, ctx: commands.Context) -> None:
         """Recharge la base de données du serveur
