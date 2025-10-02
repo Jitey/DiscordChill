@@ -6,9 +6,12 @@ parent_folder = Path(__file__).resolve().parent
 import json
 import aiosqlite
 from sqlite3 import IntegrityError, OperationalError
-import logging
 
 from icecream import ic
+from logger_config import setup_logger
+
+
+logger = setup_logger()
 
 
 
@@ -35,7 +38,7 @@ class Invite(commands.Cog):
         except IntegrityError:
             pass
         except OperationalError:
-            logging(f"{invite.guild.name}: Erreur d'insertion dans la base de données")
+            logger(f"{invite.guild.name}: Erreur d'insertion dans la base de données")
         
     
     @commands.hybrid_command(name="graph")

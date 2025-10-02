@@ -16,9 +16,10 @@ from datetime import datetime as dt
 from numpy import random as rd
 
 from icecream import ic
-import logging
+from logger_config import setup_logger
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+
+logger = setup_logger()
 
 
 
@@ -102,7 +103,7 @@ class Bienvenue(commands.Cog):
                 await connection.execute(req2)
                 await connection.commit()
             except OperationalError as error:
-                logging.info(f"{error.__class__.__name__} {member.display_name} {error}")
+                logger.info(f"{error.__class__.__name__} {member.display_name} {error}")
 
                 
         else:

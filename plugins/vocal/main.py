@@ -14,9 +14,13 @@ from PIL import Image, ImageDraw
 from io import BytesIO
 from datetime import datetime as dt, timedelta
 
-import traceback
-import logging
+
 from icecream import ic
+
+from logger_config import setup_logger
+
+
+logger = setup_logger()
 
 
 def round_it(x:float, sig: int)->float:
@@ -528,7 +532,7 @@ class Vocal(commands.Cog):
         
         # Message de connexion
         if (before.channel is None or self.was_afk(member, before, after)) and after.channel is not None:
-            logging.info(f"{serveur.name} ({after.channel.name}): {member.display_name} viens de se connecter")
+            logger.info(f"{serveur.name} ({after.channel.name}): {member.display_name} viens de se connecter")
         else:
             return
         
@@ -554,7 +558,7 @@ class Vocal(commands.Cog):
         if self.left_channel(member, before, after) and not self.was_afk(member, before, after):
             serveur = member.guild   
             afk_channel = serveur.afk_channel
-            logging.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
+            logger.info(f"{serveur.name} ({before.channel.name}): {member.display_name} viens de se déconnecter")
         else:
             return
             
@@ -628,13 +632,13 @@ class Vocal(commands.Cog):
         channel = member.voice.channel
         # Si le membre se mute
         if member.voice.self_mute:
-            logging.info(f"{serveur.name} ({channel.name}): {member.display_name} viens de se mute")
+            logger.info(f"{serveur.name} ({channel.name}): {member.display_name} viens de se mute")
             await self.stop_voice_time_counter(member, before)
             self.voice_time_counter[member.name, serveur.name] = "muted"
                 
         # Si le membre se démute
         if not member.voice.self_mute and self.voice_time_counter[member.name, serveur.name] == "muted" and len(channel.members) >= 2: 
-            logging.info(f"{serveur.name} ({channel.name}): {member.display_name} viens de se démute")
+            logger.info(f"{serveur.name} ({channel.name}): {member.display_name} viens de se démute")
             self.voice_time_counter[member.name, serveur.name] = time.perf_counter()
     
     
@@ -657,7 +661,7 @@ class Vocal(commands.Cog):
         # Met à jour le temps passé en vocal
         if profile := await self.get_member_stats(member):
             await self.on_vocal_xp(serveur, profile, *tps)
-            logging.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
+            logger.info(f"{serveur.name}: {member.display_name} a passé {tps[0]//60} minutes dans {before.channel.name}")
             self.voice_time_counter[member.name, serveur.name] = None
 
         # Créer un profil vocal si il n'existe pas

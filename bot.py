@@ -11,46 +11,11 @@ import discord
 from discord.ext import commands
 import aiosqlite
 
-import logging
-
-class ColoredFormatter(logging.Formatter):
-    COLORS = {
-        "DEBUG": "\033[92m",  # Vert
-        "INFO": "\033[94m",   # Bleu
-        "WARNING": "\033[93m",  # Jaune
-        "ERROR": "\033[91m",  # Rouge
-        "CRITICAL": "\033[95m",  # Magenta
-    }
-    RESET = "\033[0m"
-
-    def format(self, record):
-        color = self.COLORS.get(record.levelname, self.RESET)
-        record.levelname = f"{color}{record.levelname}{self.RESET}"
-        return super().format(record)
-
-# Appliquez le gestionnaire personnalisé
-consol_handler = logging.StreamHandler()
-consol_handler.setFormatter(ColoredFormatter(
-    fmt='\033[90m\033[1m%(asctime)s\033[0m \033[1m%(levelname)s\033[0m   %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-))
-file_handler = logging.FileHandler('logs.log')
-file_handler.setFormatter(logging.Formatter(
-    fmt='\033[90m\033[1m%(asctime)s\033[0m \033[1m%(levelname)s\033[0m   %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-))
-error_handler = logging.FileHandler('errors.log')
-error_handler.setLevel(logging.WARNING)
-error_handler.setFormatter(logging.Formatter(
-    fmt='%(asctime)s %(levelname)-8s %(name)s: %(message)s\n%(exc_info)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-))
+from logger_config import setup_logger
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    handlers=[consol_handler, error_handler]
-)
+logger = setup_logger()
+
 
 # env const
 PARENT_FOLDER = Path(__file__).resolve().parent
@@ -81,13 +46,13 @@ class ChillBot(commands.Bot):
         
         await self.load_all_extensions()
         synced = await self.tree.sync()
-        logging.info(f"{len(synced)} commandes synchroisées")
+        logger.info(f"{len(synced)} commandes synchroisées")
 
     async def on_ready(self) -> None:
         activity = discord.CustomActivity("En train de chill")
         await self.change_presence(status=discord.Status.online, activity=activity)
         
-        logging.info(f'Connecté en tant que {self.user.name}')
+        logger.info(f'Connecté en tant que {self.user.name}')
     
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """Fonction appelée lorsque le bot rejoint un serveur.
@@ -98,10 +63,10 @@ class ChillBot(commands.Bot):
         # Check if the guild is already in the database
         list_db = glob.glob(join(self.WORKSPACE,'databases','**'))
         if guild.name in list_db:
-            logging.info(f"Le serveur {guild.name} est déjà dans la base de données.")
+            logger.info(f"Le serveur {guild.name} est déjà dans la base de données.")
         else:
             # Create a new database for the guild
-            logging.info(f"Ajout du serveur {guild.name} à la base de données.")
+            logger.info(f"Ajout du serveur {guild.name} à la base de données.")
             self.create_db(guild.name)
     
     
@@ -111,9 +76,9 @@ class ChillBot(commands.Bot):
             if extention not in self.IGNORED_EXTENSIONS:
                 try:
                     await self.load_extension(f"plugins.{extention}.main")
-                    logging.info(f"Extension {extention} chargée")
+                    logger.info(f"Extension {extention} chargée")
                 except Exception as error:
-                    logging.error(error)
+                    logger.error(error)
     
     async def connect_to_db(self) -> dict[str, aiosqlite.Connection]:
         """Connecte le bot aux bases de données
@@ -124,7 +89,7 @@ class ChillBot(commands.Bot):
         connections = {}
         for server_db in glob.glob(join(PARENT_FOLDER,'databases','**')):
             server_name = server_db.split(sep)[-1][:-7]
-            logging.info(f"Connection à la BDD {server_name}")
+            logger.info(f"Connection à la BDD {server_name}")
             connection = await aiosqlite.connect(server_db)
             connections[server_name] = connection
         
@@ -157,7 +122,7 @@ class ChillBot(commands.Bot):
             self.connections[server].close()
 
             # On recharge la base de données
-            logging.info(f"Reloading database for {server}")
+            logger.info(f"Reloading database for {server}")
             self.connections[server] = await aiosqlite.connect(join(PARENT_FOLDER,'databases',f'{server}.sqlite'))
             await self.create_table(self.connections[server])
             await ctx.reply(f"Base de données {server} rechargée")
@@ -196,10 +161,13 @@ class ChillBot(commands.Bot):
             try:
                 data = data[int(key)] if isinstance(data,list) else data[key]
             except (KeyError, TypeError, IndexError, ValueError) as error:
-                logging.error(f"{error.__class__.__name__} {error}")
+                logger.error(f"{error.__class__.__name__} {error}")
         return data
 
 
 if __name__=='__main__':
     bot = ChillBot()
-    bot.run(getenv("BOT_TOKEN"))
+    try:
+        bot.run(getenv("BOT_TOKEN"))
+    except ConnectionResetError as error:
+        logger.fatal(error)

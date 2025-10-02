@@ -10,8 +10,6 @@ from dataclasses import dataclass
 import aiosqlite
 
 
-import traceback
-import logging
 from icecream import ic
 
 

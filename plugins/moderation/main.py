@@ -6,8 +6,11 @@ import json
 import pickle
 import shelve
 
-import logging
 from icecream import ic
+from logger_config import setup_logger
+
+
+logger = setup_logger()
 
 
 parent_folder = Path(__file__).resolve().parent
@@ -29,7 +32,7 @@ class Moderation(commands.Cog):
     async def clear(self, ctx: commands.Context, nombre: int=1):
         await ctx.defer()
         await ctx.channel.purge(limit=nombre + 1)
-        logging.info(f"{ctx.guild.name} ({ctx.channel.name}): {ctx.author.name} a effacé {nombre} messages")
+        logger.info(f"{ctx.guild.name} ({ctx.channel.name}): {ctx.author.name} a effacé {nombre} messages")
     
         
     @commands.Cog.listener(name='on_message')
