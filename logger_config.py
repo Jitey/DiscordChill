@@ -12,10 +12,16 @@ class ColoredFormatter(logging.Formatter):
     RESET = "\033[0m"
 
     def format(self, record):
-        color = self.COLORS.get(record.levelname, self.RESET)
-        levelname = f"{color}{record.levelname}{self.RESET}"
-        record.levelname = levelname
-        return super().format(record)
+        # Crée une variable locale pour l'affichage coloré
+        colored_levelname = f"{self.COLORS.get(record.levelname, self.RESET)}{record.levelname}{self.RESET}"
+        # Sauvegarde l’original
+        original_levelname = record.levelname
+        # Remplace temporairement pour le format
+        record.levelname = colored_levelname
+        result = super().format(record)
+        # Restaure l’original pour les autres handlers
+        record.levelname = original_levelname
+        return result
 
 
 def set_consol_handler(logger: logging.Logger, log_format: str, date_format: str):
@@ -48,6 +54,7 @@ def hide_discord_logger():
     logging.getLogger("discord.client").setLevel(logging.WARNING)
     logging.getLogger("discord.gateway").setLevel(logging.WARNING)
     logging.getLogger("discord.ext.commands.bot").setLevel(logging.WARNING)
+
 
 
 def setup_logger(name="ChillBot"):
