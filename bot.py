@@ -29,16 +29,27 @@ class ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 # Appliquez le gestionnaire personnalisé
-formatter = ColoredFormatter(
+consol_handler = logging.StreamHandler()
+consol_handler.setFormatter(ColoredFormatter(
     fmt='\033[90m\033[1m%(asctime)s\033[0m \033[1m%(levelname)s\033[0m   %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
-)
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
+))
+file_handler = logging.FileHandler('logs.log')
+file_handler.setFormatter(logging.Formatter(
+    fmt='\033[90m\033[1m%(asctime)s\033[0m \033[1m%(levelname)s\033[0m   %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+))
+error_handler = logging.FileHandler('errors.log')
+error_handler.setLevel(logging.WARNING)
+error_handler.setFormatter(logging.Formatter(
+    fmt='%(asctime)s %(levelname)-8s %(name)s: %(message)s\n%(exc_info)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+))
+
 
 logging.basicConfig(
     level=logging.INFO,
-    handlers=[handler]
+    handlers=[consol_handler, error_handler]
 )
 
 # env const
