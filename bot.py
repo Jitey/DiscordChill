@@ -24,7 +24,7 @@ load_dotenv(dotenv_path=join(PARENT_FOLDER,".env"))
 
 
 # Discord const
-PREFIX = '='
+PREFIX = '+'
 IGNORED_EXTENSIONS = ['ping', 'dashboard']
 DEV_IDS = [306081415643004928]
 
