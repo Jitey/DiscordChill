@@ -17,7 +17,7 @@ from datetime import datetime as dt, timedelta
 
 from icecream import ic
 
-from logger_config import setup_logger
+from logs.logger_config import setup_logger
 
 
 logger = setup_logger()

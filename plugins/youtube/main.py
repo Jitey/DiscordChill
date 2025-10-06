@@ -33,7 +33,7 @@ class RegisterView(discord.ui.View):
     
     async def desable_all_buttons(self, interaction: discord.Interaction)->None:
         for child in self.children:
-            if type(child) == discord.ui.Button:
+            if isinstance(child, discord.ui.Button):
                 child.disabled = True
         
         await interaction.message.edit(view=self)

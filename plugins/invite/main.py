@@ -8,7 +8,7 @@ import aiosqlite
 from sqlite3 import IntegrityError, OperationalError
 
 from icecream import ic
-from logger_config import setup_logger
+from logs.logger_config import setup_logger
 
 
 logger = setup_logger()

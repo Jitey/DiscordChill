@@ -11,7 +11,7 @@ import discord
 from discord.ext import commands
 import aiosqlite
 
-from logger_config import setup_logger
+from logs.logger_config import setup_logger
 
 
 logger = setup_logger()
