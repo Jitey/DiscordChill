@@ -283,6 +283,7 @@ class Rank(commands.Cog):
         self.last_message_time = {}
         self.channels = self.load_channels()
         self.ignored_channels = self.load_json('ignored_channels')
+        self.channels_coef = self.load_json('channels_coef')
         self.user_blocked = self.load_json('blocked')
         
 
@@ -441,6 +442,7 @@ class Rank(commands.Cog):
         """
         member = message.author
         serveur = message.guild
+        channel = message.channel
         current_time = dt.now()
 
         # Ignore les channels choisit
@@ -459,7 +461,8 @@ class Rank(commands.Cog):
         
         # Ajoute de l'xp au membre ou l'ajoute à la bdd si il est nouveau
         if profile := await self.get_member_stats(member):
-            await self.on_message_xp(serveur, profile)
+            gain = 1/5 * self.channels_coef.get(serveur.name, {}).get(str(channel.id), {}).get('coef', 1)
+            await self.on_message_xp(serveur, profile, gain=gain)
 
             self.last_message_time[member.id] = current_time
         else:
