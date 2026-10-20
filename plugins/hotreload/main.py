@@ -6,9 +6,6 @@ import discord
 from discord.ext import commands, tasks
 from bot import ChillBot
 
-import git
-from git import Repo
-
 
 from icecream import ic
 from logs.logger_config import setup_logger
@@ -21,7 +18,6 @@ logger = setup_logger()
 IGNORE_EXTENSIONS = ['ping','dashboard']
 plugins_folder = '/'.join(str(pathlib.Path(__file__).resolve().parent).split('/')[:-1])
 PARENT_FOLDER = pathlib.Path(__file__).resolve().parent
-GITHUB_REPOSITORY = PARENT_FOLDER.parent.parent
 
 
 
@@ -49,39 +45,15 @@ class HotReload(commands.Cog):
         self.bot = bot
         self.hot_reload_loop.start()
         self.load_new_cogs_loop.start()
-        self.pull_from_github.start()
 
 
     def cog_unload(self):
         self.hot_reload_loop.stop()
         self.load_new_cogs_loop.stop()
-        self.pull_from_github.stop()
 
     
     
 
-    @tasks.loop(seconds=5)
-    async def pull_from_github(self, repository_path: str=GITHUB_REPOSITORY)->None:
-        """Pull automatiquement sur les nouveaux commit de la branche main
-
-        Args:
-            repository_path (str, optional): Chemin local du répertoire
-        """
-        try:
-            repo = Repo(repository_path)
-            repo.remotes.origin.fetch()
-            last_local_commit = repo.head.commit
-            last_remote_commit = repo.remotes.origin.refs['main'].commit
-            
-            if last_remote_commit.committed_datetime > last_local_commit.committed_datetime:
-                repo.remotes.origin.pull()
-                    
-                logger.info(f"Pull: {last_remote_commit.message[:-1]}")
-        except git.GitCommandError as e:
-            logger.warning(f"Erreur lors du pull : {e}")
-
-
-                
     @tasks.loop(seconds=3)
     async def hot_reload_loop(self):
         for extension in list(self.bot.extensions.keys()):
